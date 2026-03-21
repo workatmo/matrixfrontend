@@ -11,6 +11,7 @@ export interface ApiSettingResource {
   key_name: string;
   label: string;
   description: string;
+  /** e.g. dvla, maps, workatmo_tyre, paypal (legacy: openai) */
   icon_type: string;
   value: string | null; // masked on backend
   has_key: boolean;

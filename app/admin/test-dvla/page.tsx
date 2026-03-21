@@ -52,8 +52,8 @@ export default function AdminTestDvlaPage() {
           <div>
             <h2 className="text-2xl font-bold text-foreground">Test DVLA</h2>
             <p className="text-muted-foreground text-sm mt-1">
-              Super Admin only — vehicle enquiry via API Settings DVLA key; tyre hints via OpenAI when
-              enabled
+              Super Admin only — vehicle enquiry via API Settings DVLA key; tyre hints via Workatmo Tyre
+              API when enabled
             </p>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-red-500 bg-red-500/10 px-3 py-1.5 rounded-full font-medium border border-red-500/20">

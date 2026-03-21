@@ -8,7 +8,7 @@ import {
   type ApiSettingResource,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { Brain, DollarSign, Globe, MapPin, Pencil, Shield } from "lucide-react";
+import { CircleDot, DollarSign, Globe, MapPin, Pencil, Shield } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 interface ApiDisplayEntry {
@@ -23,24 +23,63 @@ interface ApiDisplayEntry {
   enabled: boolean;
 }
 
-function resourceToEntry(r: ApiSettingResource): ApiDisplayEntry {
-  const byType: Record<
-    string,
-    { icon: React.ElementType; iconBg: string }
-  > = {
-    dvla: { icon: Globe, iconBg: "bg-blue-500/10 text-blue-500" },
-    maps: { icon: MapPin, iconBg: "bg-green-500/10 text-green-500" },
-    openai: { icon: Brain, iconBg: "bg-purple-500/10 text-purple-500" },
-    paypal: { icon: DollarSign, iconBg: "bg-yellow-500/10 text-yellow-500" },
-  };
-  const meta = byType[r.icon_type] ?? {
-    icon: Globe,
-    iconBg: "bg-muted text-muted-foreground",
-  };
+const API_SETTINGS_ICON_BY_TYPE: Record<
+  string,
+  { icon: React.ElementType; iconBg: string }
+> = {
+  dvla: { icon: Globe, iconBg: "bg-blue-500/10 text-blue-500" },
+  maps: { icon: MapPin, iconBg: "bg-green-500/10 text-green-500" },
+  workatmo_tyre: {
+    icon: CircleDot,
+    iconBg: "bg-violet-500/10 text-violet-500",
+  },
+  openai: {
+    icon: CircleDot,
+    iconBg: "bg-violet-500/10 text-violet-500",
+  },
+  paypal: { icon: DollarSign, iconBg: "bg-yellow-500/10 text-yellow-500" },
+};
+
+function iconMetaForType(iconType: string): {
+  icon: React.ElementType;
+  iconBg: string;
+} {
+  return (
+    API_SETTINGS_ICON_BY_TYPE[iconType] ?? {
+      icon: Globe,
+      iconBg: "bg-muted text-muted-foreground",
+    }
+  );
+}
+
+/** `key_name` is stable; label/description in DB may lag until API Settings is hit on a fresh backend. */
+function canonicalApiCopy(r: ApiSettingResource): {
+  name: string;
+  description: string;
+  iconType: string;
+} {
+  if (r.key_name === "openai") {
+    return {
+      name: "Workatmo Tyre Api",
+      description:
+        "Tyre recommendations and related intelligence via the Workatmo tyre API.",
+      iconType: "workatmo_tyre",
+    };
+  }
   return {
-    id: r.id,
     name: r.label,
     description: r.description ?? "",
+    iconType: r.icon_type,
+  };
+}
+
+function resourceToEntry(r: ApiSettingResource): ApiDisplayEntry {
+  const copy = canonicalApiCopy(r);
+  const meta = iconMetaForType(copy.iconType);
+  return {
+    id: r.id,
+    name: copy.name,
+    description: copy.description,
     keyDisplay: r.value ?? (r.has_key ? "••••••••" : "No key configured"),
     hasKey: r.has_key,
     icon: meta.icon,
@@ -53,12 +92,16 @@ function mergeFromResource(
   entry: ApiDisplayEntry,
   r: ApiSettingResource,
 ): ApiDisplayEntry {
+  const copy = canonicalApiCopy(r);
+  const meta = iconMetaForType(copy.iconType);
   return {
     ...entry,
-    name: r.label,
-    description: r.description ?? "",
+    name: copy.name,
+    description: copy.description,
     keyDisplay: r.value ?? (r.has_key ? "••••••••" : "No key configured"),
     hasKey: r.has_key,
+    icon: meta.icon,
+    iconBg: meta.iconBg,
     enabled: r.is_enabled,
   };
 }
@@ -260,7 +303,7 @@ export default function ApiSettingsPage() {
           <div>
             <h2 className="text-2xl font-bold text-foreground">API Settings</h2>
             <p className="text-muted-foreground text-sm mt-1">
-              Super Admin only — manage all API keys and integrations
+              Super Admin only — DVLA, maps, PayPal, and Workatmo Tyre API keys
             </p>
           </div>
           <div className="flex items-center gap-2">
