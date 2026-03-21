@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import packageJson from "@/package.json";
 
 const navItems = [
   {
@@ -77,13 +78,24 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border min-h-[64px]">
-        <div className="flex-shrink-0 w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center">
+        <div
+          className="flex-shrink-0 w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center"
+          title={collapsed ? `Matrix Admin v${packageJson.version}` : undefined}
+        >
           <Zap className="w-4 h-4 text-sidebar-primary-foreground" />
         </div>
         {!collapsed && (
-          <span className="text-sidebar-foreground font-bold text-lg tracking-tight whitespace-nowrap overflow-hidden">
-            Matrix Admin
-          </span>
+          <div className="min-w-0 flex flex-col gap-0.5">
+            <span className="text-sidebar-foreground font-bold text-lg tracking-tight whitespace-nowrap overflow-hidden">
+              Matrix Admin
+            </span>
+            <span
+              className="text-[10px] tabular-nums text-sidebar-foreground/40 select-none"
+              title={`Matrix Admin v${packageJson.version}`}
+            >
+              v{packageJson.version}
+            </span>
+          </div>
         )}
       </div>
 
@@ -124,9 +136,10 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Collapse Button */}
+      {/* Collapse */}
       <div className="border-t border-sidebar-border p-3">
         <button
+          type="button"
           onClick={() => setCollapsed(!collapsed)}
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200 text-sm"
         >
