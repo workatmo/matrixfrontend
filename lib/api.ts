@@ -288,6 +288,7 @@ export async function checkAdminSessionWithApi(): Promise<boolean> {
     const res = await fetch(url, {
       method: "GET",
       credentials: "include",
+      signal: AbortSignal.timeout(3000), // fail fast – don't block the UI
       headers: {
         Accept: "application/json",
         Authorization: `Bearer ${token}`,
