@@ -44,7 +44,7 @@ function AdminLoginForm() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Matrix Admin</h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Sign in to call the admin API (migrations, settings, and more).
+              Sign in with an admin account stored in the database (email and password).
             </p>
           </div>
         </div>

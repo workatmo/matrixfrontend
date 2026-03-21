@@ -26,6 +26,39 @@ export interface AdminUserPayload {
   permissions: string[];
 }
 
+export interface AdminUserListItem {
+  id: number;
+  name: string;
+  email: string;
+  role: { id: number; name: string } | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminUsersListResult {
+  users: AdminUserListItem[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+}
+
+export async function listAdminUsers(
+  page = 1,
+  perPage = 50,
+): Promise<AdminUsersListResult> {
+  const params = new URLSearchParams({
+    page: String(page),
+    per_page: String(perPage),
+  });
+  const body = await request<{ data: AdminUsersListResult }>(
+    `/admin/users?${params.toString()}`,
+  );
+  return body.data;
+}
+
 function parseJsonRecord(text: string): Record<string, unknown> {
   if (!text.trim()) {
     return {};
@@ -61,7 +94,7 @@ function messageFromApiPayload(json: Record<string, unknown>): string | null {
 
 function describeHttpFailure(status: number, text: string): string {
   if (status === 401) {
-    return "Not signed in. Use /admin/login with a Super Admin account, then try again.";
+    return "Not signed in or invalid credentials. Use an admin user from the database.";
   }
   if (status === 403) {
     return "You do not have permission for this action (Super Admin required for system update).";
@@ -205,6 +238,50 @@ export function getAdminToken(): string | null {
     return null;
   }
   return localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
+}
+
+/** Remove stored token only (no API call). */
+export function clearAdminToken(): void {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+  }
+}
+
+/**
+ * True only if GET /admin/profile succeeds. Any other outcome clears the stored
+ * token so we never show the admin shell after API errors (401, 403, 5xx, or
+ * network) — production misconfiguration often returns 500 instead of 401.
+ */
+export async function checkAdminSessionWithApi(): Promise<boolean> {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const token = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
+  if (!token) {
+    return false;
+  }
+
+  const url = `${BASE_URL}/admin/profile`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (res.ok) {
+      return true;
+    }
+
+    localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+    return false;
+  } catch {
+    localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+    return false;
+  }
 }
 
 export interface SystemUpdateStatus {

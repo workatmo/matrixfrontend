@@ -1,6 +1,6 @@
 "use client";
 
-import { getAdminToken } from "@/lib/api";
+import { checkAdminSessionWithApi, getAdminToken } from "@/lib/api";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -14,25 +14,54 @@ export default function AdminSectionLayout({
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     const isLogin = pathname === "/admin/login";
-    const token = getAdminToken();
+    const nextParam = encodeURIComponent(pathname || "/admin/dashboard");
 
-    if (isLogin) {
-      if (token) {
-        router.replace("/admin/dashboard");
+    void (async () => {
+      if (isLogin) {
+        const token = getAdminToken();
+        if (!token) {
+          if (!cancelled) {
+            setReady(true);
+          }
+          return;
+        }
+        const sessionOk = await checkAdminSessionWithApi();
+        if (cancelled) {
+          return;
+        }
+        if (sessionOk) {
+          router.replace("/admin/dashboard");
+          return;
+        }
+        setReady(true);
         return;
       }
-      queueMicrotask(() => setReady(true));
-      return;
-    }
 
-    if (!token) {
-      const next = encodeURIComponent(pathname || "/admin/dashboard");
-      router.replace(`/admin/login?next=${next}`);
-      return;
-    }
+      if (!getAdminToken()) {
+        if (!cancelled) {
+          router.replace(`/admin/login?next=${nextParam}`);
+        }
+        return;
+      }
 
-    queueMicrotask(() => setReady(true));
+      const sessionOk = await checkAdminSessionWithApi();
+      if (cancelled) {
+        return;
+      }
+
+      if (!sessionOk || !getAdminToken()) {
+        router.replace(`/admin/login?next=${nextParam}`);
+        return;
+      }
+
+      setReady(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [pathname, router]);
 
   if (!ready) {
