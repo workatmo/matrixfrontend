@@ -92,6 +92,26 @@ function messageFromApiPayload(json: Record<string, unknown>): string | null {
   return null;
 }
 
+/** Browsers differ: some use TypeError, Safari uses "Load failed" on the message. */
+function isLikelyFetchNetworkError(e: unknown): boolean {
+  if (e instanceof TypeError) {
+    return true;
+  }
+  if (e instanceof DOMException && e.name === "NetworkError") {
+    return true;
+  }
+  if (e instanceof Error) {
+    const m = e.message.toLowerCase();
+    return (
+      m.includes("failed to fetch") ||
+      m.includes("load failed") ||
+      m.includes("networkerror") ||
+      m.includes("network request failed")
+    );
+  }
+  return false;
+}
+
 function describeHttpFailure(status: number, text: string): string {
   if (status === 401) {
     return "Not signed in or invalid credentials. Use an admin user from the database.";
@@ -140,9 +160,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     });
   } catch (e) {
     const hint = BASE_URL.startsWith("/")
-      ? " Check that Laravel is running (e.g. php artisan serve) — Next proxies /api-backend to it."
-      : " Check CORS settings on the API and that the Laravel server is reachable.";
-    if (e instanceof TypeError) {
+      ? " Ensure `npm run dev` is running, then check LARAVEL_PROXY_TARGET in `.env` (server must reach Laravel)."
+      : " Check CORS on the API and that the Laravel server is reachable.";
+    if (isLikelyFetchNetworkError(e)) {
       throw new Error(`Cannot reach the API at ${url}.${hint}`);
     }
     throw e;
@@ -180,8 +200,10 @@ export async function adminLogin(
       body: JSON.stringify({ email, password }),
     });
   } catch (e) {
-    if (e instanceof TypeError) {
-      throw new Error(`Cannot reach the API at ${url}. Is Laravel running?`);
+    if (isLikelyFetchNetworkError(e)) {
+      throw new Error(
+        `Cannot reach the API at ${url}. Ensure the dev server is running and LARAVEL_PROXY_TARGET is reachable from Node (try opening this app at http://127.0.0.1:3000 if you use localhost).`,
+      );
     }
     throw e;
   }

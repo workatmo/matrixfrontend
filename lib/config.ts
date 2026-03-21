@@ -3,13 +3,13 @@
  *
  * `NEXT_PUBLIC_*` — inlined for client and server; set in `.env` for both.
  *
- * Relative `NEXT_PUBLIC_API_URL` (e.g. `/api-backend`): Next rewrites that path to
- * `LARAVEL_PROXY_TARGET` + `/api/*` (see `next.config.mjs`). Use this to avoid CORS in dev.
+ * Relative `NEXT_PUBLIC_API_URL` (e.g. `/api-backend`): proxied by
+ * `app/api-backend/[[...path]]/route.ts` to `LARAVEL_PROXY_TARGET` + `/api/*` (same-origin, no CORS).
  *
  * Absolute `NEXT_PUBLIC_API_URL` (e.g. `https://api.example.com/api`): browser calls the API
  * directly; rewrites are skipped. If you pass only the origin (no path), `/api` is appended.
  *
- * `LARAVEL_PROXY_TARGET` — server-only; set in `.env` (used by `next.config.mjs`, not this file).
+ * `LARAVEL_PROXY_TARGET` — server-only; set in `.env` (used by `app/api-backend/[[...path]]/route.ts`).
  */
 function normalizeApiBaseUrl(raw: string): string {
   const trimmed = raw.replace(/\/$/, "");
