@@ -1,11 +1,15 @@
 /**
- * Public env (must be prefixed with NEXT_PUBLIC_ to be available in the browser).
+ * Frontend config from `.env` / `.env.local` (see Next.js env loading order).
  *
- * Local dev: default `/api-backend` is proxied by Next to Laravel (see `next.config.mjs`)
- * so the browser stays same-origin and avoids CORS issues.
+ * `NEXT_PUBLIC_*` — inlined for client and server; set in `.env` for both.
  *
- * Production: set `NEXT_PUBLIC_API_URL` to your API base including the Laravel `/api` prefix,
- * e.g. `https://api.example.com/api`. If you pass only the origin (no path), `/api` is appended.
+ * Relative `NEXT_PUBLIC_API_URL` (e.g. `/api-backend`): Next rewrites that path to
+ * `LARAVEL_PROXY_TARGET` + `/api/*` (see `next.config.mjs`). Use this to avoid CORS in dev.
+ *
+ * Absolute `NEXT_PUBLIC_API_URL` (e.g. `https://api.example.com/api`): browser calls the API
+ * directly; rewrites are skipped. If you pass only the origin (no path), `/api` is appended.
+ *
+ * `LARAVEL_PROXY_TARGET` — server-only; set in `.env` (used by `next.config.mjs`, not this file).
  */
 function normalizeApiBaseUrl(raw: string): string {
   const trimmed = raw.replace(/\/$/, "");
