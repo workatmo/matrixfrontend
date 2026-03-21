@@ -61,7 +61,7 @@ async function proxy(
   } catch {
     return NextResponse.json(
       {
-        message: `Proxy could not reach Laravel at ${laravelOrigin()}. Set LARAVEL_PROXY_TARGET in .env and ensure the API is reachable from this machine.`,
+        message: "Unable to connect to the backend server. Please try again later or contact support.",
       },
       { status: 502 },
     );

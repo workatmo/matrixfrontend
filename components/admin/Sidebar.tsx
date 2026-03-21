@@ -8,6 +8,7 @@ import {
   Car,
   ShoppingCart,
   CircleDot,
+  FileSearch,
   Settings2,
   RefreshCw,
   ChevronLeft,
@@ -42,6 +43,12 @@ const navItems = [
     label: "Tyres",
     href: "/admin/tyres",
     icon: CircleDot,
+  },
+  {
+    label: "Test DVLA",
+    href: "/admin/test-dvla",
+    icon: FileSearch,
+    superAdminOnly: true,
   },
   {
     label: "API Settings",
