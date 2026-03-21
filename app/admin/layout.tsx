@@ -20,36 +20,27 @@ export default function AdminSectionLayout({
 
     void (async () => {
       if (isLogin) {
+        // Show the login form immediately — no waiting.
+        if (!cancelled) setReady(true);
+
+        // Fire-and-forget: if there's a live session, redirect to dashboard.
         const token = getAdminToken();
-        if (!token) {
-          if (!cancelled) {
-            setReady(true);
-          }
-          return;
-        }
+        if (!token) return;
         const sessionOk = await checkAdminSessionWithApi();
-        if (cancelled) {
-          return;
-        }
-        if (sessionOk) {
+        if (!cancelled && sessionOk) {
           router.replace("/admin/dashboard");
-          return;
         }
-        setReady(true);
         return;
       }
 
+      // Protected pages: need a token first.
       if (!getAdminToken()) {
-        if (!cancelled) {
-          router.replace(`/admin/login?next=${nextParam}`);
-        }
+        if (!cancelled) router.replace(`/admin/login?next=${nextParam}`);
         return;
       }
 
       const sessionOk = await checkAdminSessionWithApi();
-      if (cancelled) {
-        return;
-      }
+      if (cancelled) return;
 
       if (!sessionOk || !getAdminToken()) {
         router.replace(`/admin/login?next=${nextParam}`);
