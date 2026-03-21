@@ -317,16 +317,6 @@ export default function ApiSettingsPage() {
           </div>
         </div>
 
-        <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-2xl p-4 flex items-start gap-3">
-          <Shield className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-yellow-500 text-sm font-medium">Security Notice</p>
-            <p className="text-yellow-500/70 text-xs mt-1">
-              API keys grant access to external services. Never share them publicly. Rotate keys immediately if compromised.
-            </p>
-          </div>
-        </div>
-
         {error ? (
           <div
             className="rounded-2xl border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-600 dark:text-red-400"
