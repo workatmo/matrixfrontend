@@ -57,17 +57,17 @@ export default function Sidebar() {
   return (
     <aside
       className={cn(
-        "relative flex flex-col h-full bg-black border-r border-[#1f1f1f] transition-all duration-300 ease-in-out",
+        "relative flex flex-col h-full bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out",
         collapsed ? "w-16" : "w-64"
       )}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-[#1f1f1f] min-h-[64px]">
-        <div className="flex-shrink-0 w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-          <Zap className="w-4 h-4 text-black" />
+      <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border min-h-[64px]">
+        <div className="flex-shrink-0 w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center">
+          <Zap className="w-4 h-4 text-sidebar-primary-foreground" />
         </div>
         {!collapsed && (
-          <span className="text-white font-bold text-lg tracking-tight whitespace-nowrap overflow-hidden">
+          <span className="text-sidebar-foreground font-bold text-lg tracking-tight whitespace-nowrap overflow-hidden">
             Matrix Admin
           </span>
         )}
@@ -85,21 +85,23 @@ export default function Sidebar() {
               className={cn(
                 "group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-white text-black"
-                  : "text-gray-400 hover:bg-[#1f1f1f] hover:text-white"
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               )}
             >
               <Icon
                 className={cn(
                   "flex-shrink-0 w-5 h-5 transition-colors",
-                  isActive ? "text-black" : "text-gray-400 group-hover:text-white"
+                  isActive
+                    ? "text-sidebar-primary-foreground"
+                    : "text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground"
                 )}
               />
               {!collapsed && (
                 <span className="whitespace-nowrap overflow-hidden">{item.label}</span>
               )}
               {!collapsed && item.superAdminOnly && (
-                <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-gray-400 font-medium">
+                <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-sidebar-accent text-sidebar-accent-foreground font-medium">
                   SA
                 </span>
               )}
@@ -109,10 +111,10 @@ export default function Sidebar() {
       </nav>
 
       {/* Collapse Button */}
-      <div className="border-t border-[#1f1f1f] p-3">
+      <div className="border-t border-sidebar-border p-3">
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-gray-500 hover:bg-[#1f1f1f] hover:text-white transition-all duration-200 text-sm"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200 text-sm"
         >
           {collapsed ? (
             <ChevronRight className="w-4 h-4" />

@@ -11,10 +11,10 @@ const orders = [
 ];
 
 const statusStyles: Record<string, string> = {
-  Completed: "text-emerald-400 bg-emerald-400/10",
-  Processing: "text-blue-400 bg-blue-400/10",
-  Pending: "text-yellow-400 bg-yellow-400/10",
-  Cancelled: "text-red-400 bg-red-400/10",
+  Completed: "text-emerald-500 bg-emerald-500/10",
+  Processing: "text-blue-500 bg-blue-500/10",
+  Pending: "text-yellow-500 bg-yellow-500/10",
+  Cancelled: "text-red-500 bg-red-500/10",
 };
 
 export default function OrdersPage() {
@@ -24,11 +24,11 @@ export default function OrdersPage() {
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-white">Orders</h2>
-            <p className="text-gray-500 text-sm mt-1">Track and manage all customer orders</p>
+            <h2 className="text-2xl font-bold text-foreground">Orders</h2>
+            <p className="text-muted-foreground text-sm mt-1">Track and manage all customer orders</p>
           </div>
-          <div className="flex items-center gap-2 text-sm text-emerald-400 bg-emerald-400/10 px-3 py-1.5 rounded-full font-medium">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <div className="flex items-center gap-2 text-sm text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-full font-medium">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             Live updating
           </div>
         </div>
@@ -36,14 +36,14 @@ export default function OrdersPage() {
         {/* Search & Filter */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search orders..."
-              className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#333] transition-colors"
+              className="w-full bg-card border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-ring transition-colors"
             />
           </div>
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl text-sm text-gray-400 hover:border-[#333] hover:text-white transition-colors">
+          <button className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border rounded-xl text-sm text-muted-foreground hover:border-ring hover:text-foreground transition-colors">
             <Filter className="w-4 h-4" />
             Filter by status
           </button>
@@ -59,13 +59,13 @@ export default function OrdersPage() {
           ].map((s) => {
             const Icon = s.icon;
             return (
-              <div key={s.label} className="bg-[#0a0a0a] border border-[#1f1f1f] rounded-2xl p-4 flex items-center gap-3">
-                <div className="w-9 h-9 bg-[#1a1a1a] rounded-xl flex items-center justify-center">
-                  <Icon className="w-4 h-4 text-gray-300" />
+              <div key={s.label} className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3">
+                <div className="w-9 h-9 bg-muted rounded-xl flex items-center justify-center">
+                  <Icon className="w-4 h-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-white font-bold text-xl">{s.value}</p>
-                  <p className="text-gray-500 text-xs">{s.label}</p>
+                  <p className="text-foreground font-bold text-xl">{s.value}</p>
+                  <p className="text-muted-foreground text-xs">{s.label}</p>
                 </div>
               </div>
             );
@@ -73,34 +73,34 @@ export default function OrdersPage() {
         </div>
 
         {/* Orders Table */}
-        <div className="bg-[#0a0a0a] border border-[#1f1f1f] rounded-2xl overflow-hidden">
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#1f1f1f]">
+                <tr className="border-b border-border">
                   {["Order ID", "Customer", "Vehicle", "Service", "Date", "Amount", "Status", ""].map((h) => (
-                    <th key={h} className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th key={h} className="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#111]">
+              <tbody className="divide-y divide-border">
                 {orders.map((order) => (
-                  <tr key={order.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-5 py-4 text-sm text-white font-mono">{order.id}</td>
-                    <td className="px-5 py-4 text-sm text-white">{order.customer}</td>
-                    <td className="px-5 py-4 text-sm text-gray-400">{order.vehicle}</td>
-                    <td className="px-5 py-4 text-sm text-gray-400">{order.service}</td>
-                    <td className="px-5 py-4 text-sm text-gray-500">{order.date}</td>
-                    <td className="px-5 py-4 text-sm text-white font-medium">{order.amount}</td>
+                  <tr key={order.id} className="hover:bg-accent/30 transition-colors">
+                    <td className="px-5 py-4 text-sm text-muted-foreground font-mono">{order.id}</td>
+                    <td className="px-5 py-4 text-sm text-foreground">{order.customer}</td>
+                    <td className="px-5 py-4 text-sm text-muted-foreground">{order.vehicle}</td>
+                    <td className="px-5 py-4 text-sm text-muted-foreground">{order.service}</td>
+                    <td className="px-5 py-4 text-sm text-muted-foreground/60">{order.date}</td>
+                    <td className="px-5 py-4 text-sm text-foreground font-medium">{order.amount}</td>
                     <td className="px-5 py-4">
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusStyles[order.status]}`}>
                         {order.status}
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <button className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-[#1f1f1f] transition-colors">
+                      <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
                     </td>

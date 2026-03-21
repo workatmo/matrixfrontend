@@ -11,9 +11,9 @@ const tyres = [
 ];
 
 const typeStyles: Record<string, string> = {
-  Summer: "text-orange-400 bg-orange-400/10",
-  Winter: "text-blue-400 bg-blue-400/10",
-  "All-Season": "text-green-400 bg-green-400/10",
+  Summer: "text-orange-500 bg-orange-500/10",
+  Winter: "text-blue-500 bg-blue-500/10",
+  "All-Season": "text-green-500 bg-green-500/10",
 };
 
 export default function TyresPage() {
@@ -23,10 +23,10 @@ export default function TyresPage() {
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-white">Tyres</h2>
-            <p className="text-gray-500 text-sm mt-1">Manage tyre catalogue and inventory</p>
+            <h2 className="text-2xl font-bold text-foreground">Tyres</h2>
+            <p className="text-muted-foreground text-sm mt-1">Manage tyre catalogue and inventory</p>
           </div>
-          <button className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-100 transition-colors">
+          <button className="flex items-center gap-2 bg-foreground text-background px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity">
             <Plus className="w-4 h-4" />
             Add Tyre
           </button>
@@ -34,11 +34,11 @@ export default function TyresPage() {
 
         {/* Search */}
         <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search tyres..."
-            className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#333] transition-colors"
+            className="w-full bg-card border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-ring transition-colors"
           />
         </div>
 
@@ -49,58 +49,58 @@ export default function TyresPage() {
             { label: "In Stock", value: "6,420" },
             { label: "Out of Stock", value: "23" },
           ].map((s) => (
-            <div key={s.label} className="bg-[#0a0a0a] border border-[#1f1f1f] rounded-2xl p-4 flex items-center gap-3">
-              <div className="w-9 h-9 bg-[#1a1a1a] rounded-xl flex items-center justify-center">
-                <CircleDot className="w-4 h-4 text-gray-300" />
+            <div key={s.label} className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3">
+              <div className="w-9 h-9 bg-muted rounded-xl flex items-center justify-center">
+                <CircleDot className="w-4 h-4 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-white font-bold text-xl">{s.value}</p>
-                <p className="text-gray-500 text-xs">{s.label}</p>
+                <p className="text-foreground font-bold text-xl">{s.value}</p>
+                <p className="text-muted-foreground text-xs">{s.label}</p>
               </div>
             </div>
           ))}
         </div>
 
         {/* Tyres Table */}
-        <div className="bg-[#0a0a0a] border border-[#1f1f1f] rounded-2xl overflow-hidden">
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#1f1f1f]">
+                <tr className="border-b border-border">
                   {["Brand & Model", "Size", "Type", "Stock", "Price", "Rating", ""].map((h) => (
-                    <th key={h} className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th key={h} className="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#111]">
+              <tbody className="divide-y divide-border">
                 {tyres.map((t) => (
-                  <tr key={t.id} className="hover:bg-white/[0.02] transition-colors">
+                  <tr key={t.id} className="hover:bg-accent/30 transition-colors">
                     <td className="px-5 py-4">
-                      <p className="text-white text-sm font-medium">{t.brand}</p>
-                      <p className="text-gray-500 text-xs">{t.model}</p>
+                      <p className="text-foreground text-sm font-medium">{t.brand}</p>
+                      <p className="text-muted-foreground text-xs">{t.model}</p>
                     </td>
-                    <td className="px-5 py-4 text-sm text-gray-400 font-mono">{t.size}</td>
+                    <td className="px-5 py-4 text-sm text-muted-foreground font-mono">{t.size}</td>
                     <td className="px-5 py-4">
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${typeStyles[t.type]}`}>
                         {t.type}
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <span className={`text-sm font-medium ${t.stock === 0 ? "text-red-400" : "text-white"}`}>
+                      <span className={`text-sm font-medium ${t.stock === 0 ? "text-red-500" : "text-foreground"}`}>
                         {t.stock === 0 ? "Out of Stock" : t.stock}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-sm text-white font-medium">{t.price}</td>
+                    <td className="px-5 py-4 text-sm text-foreground font-medium">{t.price}</td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-1">
-                        <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                        <span className="text-sm text-gray-300">{t.rating}</span>
+                        <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                        <span className="text-sm text-muted-foreground">{t.rating}</span>
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      <button className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-[#1f1f1f] transition-colors">
+                      <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
                     </td>

@@ -1,138 +1,262 @@
-import AdminLayout from "@/components/admin/Layout";
-import { Eye, RefreshCw, Shield, Key, Zap, Globe } from "lucide-react";
+"use client";
 
-const apiKeys = [
+import AdminLayout from "@/components/admin/Layout";
+import { Shield, Globe, Pencil, Brain, DollarSign } from "lucide-react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+
+interface ApiEntry {
+  id: number;
+  name: string;
+  description: string;
+  key: string;
+  icon: React.ElementType;
+  iconBg: string;
+  enabled: boolean;
+}
+
+const initialApis: ApiEntry[] = [
   {
     id: 1,
     name: "DVLA Vehicle Enquiry API",
+    description: "Look up UK vehicle registration details and MOT history via the DVLA database.",
     key: "dvla_sk_••••••••••••••••••••••••3f8a",
-    status: "Active",
-    lastUsed: "2 mins ago",
-    requests: "14,820",
     icon: Globe,
+    iconBg: "bg-blue-500/10 text-blue-500",
+    enabled: true,
   },
   {
     id: 2,
-    name: "Stripe Payment Gateway",
-    key: "sk_live_••••••••••••••••••••••••9d2c",
-    status: "Active",
-    lastUsed: "15 mins ago",
-    requests: "8,431",
-    icon: Shield,
+    name: "Google Maps Platform",
+    description: "Geocoding, place search, and distance matrix for tyre fitting location services.",
+    key: "AIza••••••••••••••••••••••••••••••",
+    icon: Globe,
+    iconBg: "bg-green-500/10 text-green-500",
+    enabled: true,
   },
   {
     id: 3,
-    name: "SendGrid Email API",
-    key: "SG.••••••••••••••••••••••••••••••••",
-    status: "Active",
-    lastUsed: "1 hr ago",
-    requests: "2,104",
-    icon: Zap,
+    name: "ChatGPT (OpenAI)",
+    description: "AI-powered customer support, tyre recommendations, and intelligent search.",
+    key: "sk-proj-••••••••••••••••••••••••••••",
+    icon: Brain,
+    iconBg: "bg-purple-500/10 text-purple-500",
+    enabled: false,
   },
   {
     id: 4,
-    name: "Google Maps Platform",
-    key: "AIza••••••••••••••••••••••••••••••",
-    status: "Inactive",
-    lastUsed: "3 days ago",
-    requests: "0",
-    icon: Globe,
+    name: "PayPal Payments",
+    description: "Accept PayPal payments and manage refunds for tyre orders and bookings.",
+    key: "live_••••••••••••••••••••••••••••••",
+    icon: DollarSign,
+    iconBg: "bg-yellow-500/10 text-yellow-500",
+    enabled: true,
   },
 ];
 
+function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      className={cn(
+        "relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none",
+        enabled ? "bg-emerald-500" : "bg-border"
+      )}
+      aria-label={enabled ? "Disable" : "Enable"}
+    >
+      <span
+        className={cn(
+          "inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200",
+          enabled ? "translate-x-6" : "translate-x-1"
+        )}
+      />
+    </button>
+  );
+}
+
+function EditModal({
+  api,
+  onClose,
+  onSave,
+}: {
+  api: ApiEntry;
+  onClose: () => void;
+  onSave: (key: string) => void;
+}) {
+  const [value, setValue] = useState(api.key);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-lg shadow-2xl mx-4">
+        {/* Modal Header */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0", api.iconBg)}>
+            <api.icon className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-foreground font-semibold">{api.name}</h3>
+            <p className="text-muted-foreground text-xs">Update API key</p>
+          </div>
+        </div>
+
+        {/* Input */}
+        <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">
+          API Key
+        </label>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-sm text-foreground font-mono focus:outline-none focus:border-ring transition-colors"
+          placeholder="Enter API key..."
+        />
+        <p className="text-muted-foreground/60 text-xs mt-1.5">
+          {api.description}
+        </p>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-3 mt-5">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border hover:border-ring rounded-xl transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => { onSave(value); onClose(); }}
+            className="px-4 py-2 text-sm font-semibold bg-foreground text-background rounded-xl hover:opacity-90 transition-opacity"
+          >
+            Save Key
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ApiSettingsPage() {
+  const [apis, setApis] = useState<ApiEntry[]>(initialApis);
+  const [editing, setEditing] = useState<ApiEntry | null>(null);
+
+  const toggleApi = (id: number) => {
+    setApis((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, enabled: !a.enabled } : a))
+    );
+  };
+
+  const saveKey = (id: number, key: string) => {
+    setApis((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, key } : a))
+    );
+  };
+
+  const enabledCount = apis.filter((a) => a.enabled).length;
+
   return (
     <AdminLayout title="API Settings">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="space-y-6">
         {/* Page Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-white">API Settings</h2>
-            <p className="text-gray-500 text-sm mt-1">
+            <h2 className="text-2xl font-bold text-foreground">API Settings</h2>
+            <p className="text-muted-foreground text-sm mt-1">
               Super Admin only — manage all API keys and integrations
             </p>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-red-400 bg-red-400/10 px-3 py-1.5 rounded-full font-medium border border-red-400/20">
-            <Shield className="w-3.5 h-3.5" />
-            Restricted Access
+          <div className="flex items-center gap-2">
+            <div className="text-xs text-muted-foreground bg-muted px-3 py-1.5 rounded-full">
+              {enabledCount} of {apis.length} active
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-red-500 bg-red-500/10 px-3 py-1.5 rounded-full font-medium border border-red-500/20">
+              <Shield className="w-3.5 h-3.5" />
+              Restricted Access
+            </div>
           </div>
         </div>
 
         {/* Warning Banner */}
-        <div className="bg-yellow-400/5 border border-yellow-400/20 rounded-2xl p-4 flex items-start gap-3">
-          <Shield className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+        <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-2xl p-4 flex items-start gap-3">
+          <Shield className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-yellow-400 text-sm font-medium">Security Notice</p>
-            <p className="text-yellow-400/70 text-xs mt-1">
+            <p className="text-yellow-500 text-sm font-medium">Security Notice</p>
+            <p className="text-yellow-500/70 text-xs mt-1">
               API keys grant access to external services. Never share them publicly. Rotate keys immediately if compromised.
             </p>
           </div>
         </div>
 
-        {/* API Key Cards */}
-        <div className="space-y-3">
-          {apiKeys.map((api) => {
+        {/* API Cards Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {apis.map((api) => {
             const Icon = api.icon;
             return (
-              <div key={api.id} className="bg-[#0a0a0a] border border-[#1f1f1f] rounded-2xl p-5 hover:border-[#2a2a2a] transition-colors">
+              <div
+                key={api.id}
+                className={cn(
+                  "bg-card border rounded-2xl p-5 transition-all duration-200",
+                  api.enabled ? "border-border" : "border-border opacity-60"
+                )}
+              >
                 <div className="flex items-start justify-between gap-4">
+                  {/* Left: Icon + Info */}
                   <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-5 h-5 text-gray-300" />
+                    <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0", api.iconBg)}>
+                      <Icon className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-white font-medium text-sm">{api.name}</p>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                          api.status === "Active"
-                            ? "text-emerald-400 bg-emerald-400/10"
-                            : "text-gray-500 bg-gray-500/10"
-                        }`}>
-                          {api.status}
+                        <p className="text-foreground font-semibold text-sm">{api.name}</p>
+                        <span className={cn(
+                          "text-xs px-2 py-0.5 rounded-full font-medium",
+                          api.enabled
+                            ? "text-emerald-500 bg-emerald-500/10"
+                            : "text-muted-foreground bg-muted"
+                        )}>
+                          {api.enabled ? "Active" : "Inactive"}
                         </span>
                       </div>
+                      <p className="text-muted-foreground text-xs mt-1 leading-relaxed">
+                        {api.description}
+                      </p>
 
-                      {/* Key Display */}
-                      <div className="mt-2 flex items-center gap-2">
-                        <code className="text-xs text-gray-400 bg-[#111] border border-[#1f1f1f] px-3 py-1.5 rounded-lg font-mono flex-1 min-w-0 truncate">
-                          {api.key}
-                        </code>
-                        <button className="p-1.5 text-gray-500 hover:text-white hover:bg-[#1f1f1f] rounded-lg transition-colors flex-shrink-0">
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button className="p-1.5 text-gray-500 hover:text-white hover:bg-[#1f1f1f] rounded-lg transition-colors flex-shrink-0">
-                          <RefreshCw className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      {/* Stats */}
-                      <div className="mt-2 flex items-center gap-4">
-                        <span className="text-xs text-gray-600">Last used: <span className="text-gray-400">{api.lastUsed}</span></span>
-                        <span className="text-xs text-gray-600">Requests today: <span className="text-gray-400">{api.requests}</span></span>
-                      </div>
+                      {/* Key preview */}
+                      <code className="mt-2.5 inline-block text-xs text-muted-foreground bg-muted border border-border px-3 py-1.5 rounded-lg font-mono max-w-full truncate w-full">
+                        {api.key}
+                      </code>
                     </div>
                   </div>
+                </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button className="text-xs text-gray-400 hover:text-white px-3 py-1.5 rounded-lg border border-[#1f1f1f] hover:border-[#333] transition-colors">
-                      Revoke
-                    </button>
+                {/* Footer: Toggle + Edit */}
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+                  <div className="flex items-center gap-2.5">
+                    <Toggle enabled={api.enabled} onToggle={() => toggleApi(api.id)} />
+                    <span className="text-xs text-muted-foreground">
+                      {api.enabled ? "Enabled" : "Disabled"}
+                    </span>
                   </div>
+                  <button
+                    onClick={() => setEditing(api)}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg border border-border hover:border-ring transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    Edit Key
+                  </button>
                 </div>
               </div>
             );
           })}
         </div>
-
-        {/* Add New Key */}
-        <div className="bg-[#0a0a0a] border border-dashed border-[#2a2a2a] rounded-2xl p-5 flex items-center justify-center">
-          <button className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-sm">
-            <Key className="w-4 h-4" />
-            Add New API Key
-          </button>
-        </div>
       </div>
+
+      {/* Edit Modal */}
+      {editing && (
+        <EditModal
+          api={editing}
+          onClose={() => setEditing(null)}
+          onSave={(key) => saveKey(editing.id, key)}
+        />
+      )}
     </AdminLayout>
   );
 }

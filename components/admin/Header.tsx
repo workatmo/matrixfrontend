@@ -1,7 +1,8 @@
 "use client";
 
-import { Bell, LogOut, User, ChevronDown } from "lucide-react";
+import { Bell, LogOut, User, ChevronDown, Sun, Moon } from "lucide-react";
 import { useState } from "react";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
 interface HeaderProps {
@@ -10,39 +11,51 @@ interface HeaderProps {
 
 export default function Header({ title = "Super Admin" }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
+  // resolvedTheme is undefined until hydration; default to "dark" so icon renders immediately
+  const isDark = (resolvedTheme ?? "dark") === "dark";
 
   return (
-    <header className="h-16 bg-black border-b border-[#1f1f1f] flex items-center justify-between px-6 sticky top-0 z-10">
+    <header className="h-16 bg-sidebar border-b border-sidebar-border flex items-center justify-between px-6 sticky top-0 z-10">
       {/* Left: Page title */}
       <div>
-        <h1 className="text-white font-semibold text-lg">{title}</h1>
-        <p className="text-gray-500 text-xs">Super Administrator Panel</p>
+        <h1 className="text-foreground font-semibold text-lg">{title}</h1>
+        <p className="text-muted-foreground text-xs">Super Administrator Panel</p>
       </div>
 
       {/* Right: Actions */}
       <div className="flex items-center gap-3">
+        {/* Theme Toggle */}
+        <button
+          onClick={() => setTheme(isDark ? "light" : "dark")}
+          title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          className="p-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+        >
+          {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </button>
+
         {/* Notification Bell */}
-        <button className="relative p-2 rounded-lg text-gray-400 hover:bg-[#1f1f1f] hover:text-white transition-colors">
+        <button className="relative p-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
           <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-white rounded-full" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-foreground rounded-full" />
         </button>
 
         {/* Profile dropdown */}
         <div className="relative">
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[#1f1f1f] transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-accent transition-colors"
           >
-            <div className="w-8 h-8 bg-[#1f1f1f] border border-[#333] rounded-full flex items-center justify-center">
-              <User className="w-4 h-4 text-gray-300" />
+            <div className="w-8 h-8 bg-muted border border-border rounded-full flex items-center justify-center">
+              <User className="w-4 h-4 text-muted-foreground" />
             </div>
             <div className="hidden sm:block text-left">
-              <p className="text-white text-sm font-medium leading-none">Admin</p>
-              <p className="text-gray-500 text-xs mt-0.5">admin@matrix.com</p>
+              <p className="text-foreground text-sm font-medium leading-none">Admin</p>
+              <p className="text-muted-foreground text-xs mt-0.5">admin@matrix.com</p>
             </div>
             <ChevronDown
               className={cn(
-                "w-4 h-4 text-gray-500 transition-transform duration-200",
+                "w-4 h-4 text-muted-foreground transition-transform duration-200",
                 dropdownOpen && "rotate-180"
               )}
             />
@@ -50,13 +63,13 @@ export default function Header({ title = "Super Admin" }: HeaderProps) {
 
           {/* Dropdown */}
           {dropdownOpen && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-[#111] border border-[#1f1f1f] rounded-xl shadow-2xl overflow-hidden z-50">
-              <div className="px-4 py-3 border-b border-[#1f1f1f]">
-                <p className="text-white text-sm font-medium">Admin User</p>
-                <p className="text-gray-500 text-xs">admin@matrix.com</p>
+            <div className="absolute right-0 top-full mt-2 w-48 bg-popover border border-border rounded-xl shadow-2xl overflow-hidden z-50">
+              <div className="px-4 py-3 border-b border-border">
+                <p className="text-popover-foreground text-sm font-medium">Admin User</p>
+                <p className="text-muted-foreground text-xs">admin@matrix.com</p>
               </div>
               <div className="p-1">
-                <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-[#1f1f1f] hover:text-white transition-colors">
+                <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
                   <User className="w-4 h-4" />
                   Profile
                 </button>
