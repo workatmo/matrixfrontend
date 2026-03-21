@@ -1,4 +1,15 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {}
+const laravelOrigin = process.env.LARAVEL_PROXY_TARGET ?? "http://127.0.0.1:8000";
 
-export default nextConfig
+const nextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: "/api-backend/:path*",
+        destination: `${laravelOrigin.replace(/\/$/, "")}/api/:path*`,
+      },
+    ];
+  },
+};
+
+export default nextConfig;

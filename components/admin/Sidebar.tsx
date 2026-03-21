@@ -9,6 +9,7 @@ import {
   ShoppingCart,
   CircleDot,
   Settings2,
+  RefreshCw,
   ChevronLeft,
   ChevronRight,
   Zap,
@@ -46,6 +47,12 @@ const navItems = [
     label: "API Settings",
     href: "/admin/api-settings",
     icon: Settings2,
+    superAdminOnly: true,
+  },
+  {
+    label: "Update",
+    href: "/admin/update",
+    icon: RefreshCw,
     superAdminOnly: true,
   },
 ];

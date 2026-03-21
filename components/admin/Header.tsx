@@ -1,16 +1,20 @@
 "use client";
 
-import { Bell, LogOut, User, ChevronDown, Sun, Moon } from "lucide-react";
-import { useState } from "react";
-import { useTheme } from "next-themes";
+import { adminLogout } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { Bell, ChevronDown, LogOut, Moon, Sun, User } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 interface HeaderProps {
   title?: string;
 }
 
 export default function Header({ title = "Super Admin" }: HeaderProps) {
+  const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
   // resolvedTheme is undefined until hydration; default to "dark" so icon renders immediately
   const isDark = (resolvedTheme ?? "dark") === "dark";
@@ -73,9 +77,25 @@ export default function Header({ title = "Super Admin" }: HeaderProps) {
                   <User className="w-4 h-4" />
                   Profile
                 </button>
-                <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors">
+                <button
+                  type="button"
+                  disabled={loggingOut}
+                  onClick={() => {
+                    void (async () => {
+                      setLoggingOut(true);
+                      try {
+                        await adminLogout();
+                      } finally {
+                        setDropdownOpen(false);
+                        router.replace("/admin/login");
+                        router.refresh();
+                      }
+                    })();
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors disabled:opacity-50"
+                >
                   <LogOut className="w-4 h-4" />
-                  Logout
+                  {loggingOut ? "Signing out…" : "Logout"}
                 </button>
               </div>
             </div>
