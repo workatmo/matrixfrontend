@@ -11,6 +11,7 @@ export interface ApiSettingResource {
   key_name: string;
   label: string;
   description: string;
+  /** e.g. dvla, maps, workatmo_tyre, paypal (legacy: openai) */
   icon_type: string;
   value: string | null; // masked on backend
   has_key: boolean;
@@ -288,6 +289,7 @@ export async function checkAdminSessionWithApi(): Promise<boolean> {
     const res = await fetch(url, {
       method: "GET",
       credentials: "include",
+      signal: AbortSignal.timeout(3000), // fail fast – don't block the UI
       headers: {
         Accept: "application/json",
         Authorization: `Bearer ${token}`,
@@ -357,4 +359,23 @@ export async function updateApiKey(id: number, value: string): Promise<ApiSettin
     }
   );
   return data.data;
+}
+
+// ── DVLA test (Super Admin) ─────────────────────────────────────────────────
+
+export interface DvlaTestResult {
+  dvla_success: boolean;
+  dvla_http_code: number;
+  dvla_error: string | null;
+  vehicle: Record<string, unknown> | null;
+  tyre: Record<string, unknown> | null;
+  tyre_error: Record<string, unknown> | null;
+}
+
+export async function runDvlaTestLookup(vrm: string): Promise<DvlaTestResult> {
+  const json = await request<{ data: DvlaTestResult }>("/admin/dvla-test", {
+    method: "POST",
+    body: JSON.stringify({ vrm }),
+  });
+  return json.data;
 }

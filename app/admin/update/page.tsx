@@ -6,8 +6,7 @@ import {
   runSystemUpdate,
   type SystemUpdateStatus,
 } from "@/lib/api";
-import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, Shield } from "lucide-react";
-import Link from "next/link";
+import { CheckCircle2, Loader2, RefreshCw, Shield } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -77,28 +76,6 @@ export default function AdminUpdatePage() {
         <div className="flex flex-1 flex-col min-h-0 lg:flex-row">
           {/* Left column — controls & context */}
           <div className="flex flex-col gap-6 shrink-0 border-border lg:w-[min(100%,420px)] lg:border-r overflow-y-auto p-6">
-            <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-              <div className="text-sm space-y-1 min-w-0">
-                <p className="text-amber-600 dark:text-amber-400 font-medium">What this does</p>
-                <ul className="text-amber-600/80 dark:text-amber-400/80 list-disc pl-4 space-y-1">
-                  <li>
-                    Runs{" "}
-                    <strong className="font-medium text-amber-700 dark:text-amber-300">only pending</strong>{" "}
-                    Laravel migrations (
-                    <code className="text-xs font-mono bg-muted px-1 rounded">php artisan migrate</code>
-                    ). It does{" "}
-                    <strong className="font-medium text-amber-700 dark:text-amber-300">not</strong> drop or
-                    rebuild tables when migrations are written correctly.
-                  </li>
-                  <li>
-                    Clears config, route, view, and application caches (
-                    <code className="text-xs font-mono bg-muted px-1 rounded">optimize:clear</code>).
-                  </li>
-                </ul>
-              </div>
-            </div>
-
             <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-4 min-h-0 flex-1 lg:flex-none">
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <h3 className="text-foreground font-semibold">Migration status</h3>
@@ -116,18 +93,6 @@ export default function AdminUpdatePage() {
                   Refresh
                 </button>
               </div>
-
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                This calls a protected API.{" "}
-                <Link
-                  href="/admin/login"
-                  className="text-foreground underline underline-offset-2 hover:text-sidebar-primary"
-                >
-                  Sign in
-                </Link>{" "}
-                with a <strong className="font-medium text-foreground">Super Admin</strong> account so a token is
-                stored; then refresh status.
-              </p>
 
               {statusError && (
                 <p className="text-sm text-red-500 bg-red-500/5 border border-red-500/20 rounded-xl px-3 py-2 whitespace-pre-wrap">
