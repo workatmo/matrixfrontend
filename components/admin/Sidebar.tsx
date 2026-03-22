@@ -10,6 +10,7 @@ import {
   CircleDot,
   FileSearch,
   Settings2,
+  Settings,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
@@ -62,6 +63,11 @@ const navItems = [
     href: "/admin/update",
     icon: RefreshCw,
     superAdminOnly: true,
+  },
+  {
+    label: "Settings",
+    href: "/admin/settings",
+    icon: Settings,
   },
 ];
 

@@ -379,3 +379,78 @@ export async function runDvlaTestLookup(vrm: string): Promise<DvlaTestResult> {
   });
   return json.data;
 }
+
+// ── Admin Settings ───────────────────────────────────────────────────────────
+
+export interface AdminSettings {
+  brand_name: string;
+  logo_url: string;
+  website_title: string;
+  address: string;
+  contact_number: string;
+  vat_number: string;
+  vat_percentage: string;
+  vat_enabled: string;          // "1" | "0"
+  platform_fee: string;         // fixed amount
+  platform_fee_enabled: string; // "1" | "0"
+  maintenance_mode: string;     // "1" | "0"
+  maintenance_message: string;
+}
+
+export async function getAdminSettings(): Promise<AdminSettings> {
+  const data = await request<{ data: { settings: AdminSettings } }>(
+    "/admin/settings"
+  );
+  return data.data.settings;
+}
+
+export async function saveAdminSettings(
+  payload: AdminSettings
+): Promise<AdminSettings> {
+  const data = await request<{ data: { settings: AdminSettings } }>(
+    "/admin/settings",
+    {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }
+  );
+  return data.data.settings;
+}
+
+/**
+ * Upload a logo image file. Returns the public URL stored by the backend.
+ * Uses multipart/form-data — no Content-Type override needed (browser sets boundary).
+ */
+export async function uploadAdminLogo(file: File): Promise<string> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)
+      : null;
+
+  const form = new FormData();
+  form.append("logo", file);
+
+  const res = await fetch(`${BASE_URL}/admin/settings/logo`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form,
+  });
+
+  const text = await res.text();
+  const json = parseJsonRecord(text);
+
+  if (!res.ok) {
+    const fromApi = messageFromApiPayload(json);
+    throw new Error(fromApi ?? describeHttpFailure(res.status, text));
+  }
+
+  const url = (json.data as Record<string, unknown>)?.url;
+  if (typeof url !== "string") {
+    throw new Error("Logo upload failed: unexpected response.");
+  }
+  return url;
+}
