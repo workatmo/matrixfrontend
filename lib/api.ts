@@ -25,6 +25,7 @@ export interface AdminUserPayload {
   email: string;
   role: { id: number; name: string } | null;
   permissions: string[];
+  is_active: boolean;
 }
 
 export interface AdminUserListItem {
@@ -32,6 +33,8 @@ export interface AdminUserListItem {
   name: string;
   email: string;
   role: { id: number; name: string } | null;
+  permissions: string[];
+  is_active: boolean;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -58,6 +61,35 @@ export async function listAdminUsers(
     `/admin/users?${params.toString()}`,
   );
   return body.data;
+}
+
+export interface AdminUserCreatePayload {
+  name: string;
+  email: string;
+  password?: string;
+  role: string;
+  permissions?: string[];
+  is_active?: boolean;
+}
+
+export async function createAdminUser(payload: AdminUserCreatePayload): Promise<AdminUserListItem> {
+  const data = await request<{ data: AdminUserListItem }>("/admin/users", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminUser(id: number, payload: Partial<AdminUserCreatePayload>): Promise<AdminUserListItem> {
+  const data = await request<{ data: AdminUserListItem }>(`/admin/users/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminUser(id: number): Promise<void> {
+  await request(`/admin/users/${id}`, { method: "DELETE" });
 }
 
 function parseJsonRecord(text: string): Record<string, unknown> {
@@ -275,13 +307,13 @@ export function clearAdminToken(): void {
  * token so we never show the admin shell after API errors (401, 403, 5xx, or
  * network) — production misconfiguration often returns 500 instead of 401.
  */
-export async function checkAdminSessionWithApi(): Promise<boolean> {
+export async function checkAdminSessionWithApi(): Promise<AdminUserPayload | null> {
   if (typeof window === "undefined") {
-    return false;
+    return null;
   }
   const token = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
   if (!token) {
-    return false;
+    return null;
   }
 
   const url = `${BASE_URL}/admin/profile`;
@@ -297,14 +329,16 @@ export async function checkAdminSessionWithApi(): Promise<boolean> {
     });
 
     if (res.ok) {
-      return true;
+      const text = await res.text();
+      const json = parseJsonRecord(text);
+      return (json.data as AdminUserPayload) || null;
     }
 
     localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
-    return false;
+    return null;
   } catch {
     localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
-    return false;
+    return null;
   }
 }
 

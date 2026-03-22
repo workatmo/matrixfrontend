@@ -1,6 +1,7 @@
 "use client";
 
-import { checkAdminSessionWithApi, getAdminToken } from "@/lib/api";
+import { checkAdminSessionWithApi, getAdminToken, type AdminUserPayload } from "@/lib/api";
+import { AuthProvider } from "@/components/admin/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -12,6 +13,8 @@ export default function AdminSectionLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [ready, setReady] = useState(false);
+  const [user, setUser] = useState<AdminUserPayload | null>(null);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -26,8 +29,9 @@ export default function AdminSectionLayout({
         // Fire-and-forget: if there's a live session, redirect to dashboard.
         const token = getAdminToken();
         if (!token) return;
-        const sessionOk = await checkAdminSessionWithApi();
-        if (!cancelled && sessionOk) {
+        const profile = await checkAdminSessionWithApi();
+        if (!cancelled && profile) {
+          setUser(profile);
           router.replace("/admin/dashboard");
         }
         return;
@@ -39,14 +43,42 @@ export default function AdminSectionLayout({
         return;
       }
 
-      const sessionOk = await checkAdminSessionWithApi();
+      const profile = await checkAdminSessionWithApi();
       if (cancelled) return;
 
-      if (!sessionOk || !getAdminToken()) {
+      if (!profile || !getAdminToken()) {
         router.replace(`/admin/login?next=${nextParam}`);
         return;
       }
 
+      let denied = false;
+      if (pathname !== "/admin/login" && profile.role?.name !== "super_admin") {
+        const permissionMap: Record<string, string> = {
+          "/admin/dashboard": "dashboard",
+          "/admin/users": "customers",
+          "/admin/vehicles": "vehicles",
+          "/admin/orders": "orders",
+          "/admin/tyres": "tyres",
+          "/admin/settings": "settings",
+          "/admin/test-dvla": "test_dvla",
+          "/admin/api-settings": "api_settings",
+          "/admin/update": "update",
+        };
+
+        const match = Object.entries(permissionMap).find(([path]) => pathname.startsWith(path));
+        if (match) {
+          const requiredPerm = match[1];
+          if (!profile.permissions?.includes(requiredPerm)) {
+            denied = true;
+          }
+        }
+      }
+
+      if (denied) {
+        setAccessDenied(true);
+      }
+
+      setUser(profile);
       setReady(true);
     })();
 
@@ -63,5 +95,23 @@ export default function AdminSectionLayout({
     );
   }
 
-  return <>{children}</>;
+  if (accessDenied) {
+    return (
+      <div className="flex h-screen bg-background overflow-hidden items-center justify-center flex-col gap-4">
+        <h1 className="text-3xl font-bold text-foreground">Access Denied</h1>
+        <p className="text-muted-foreground">You do not have permission to view this page.</p>
+        <button
+          onClick={() => {
+            setAccessDenied(false);
+            router.push("/admin/dashboard");
+          }}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-xl"
+        >
+          Return to Dashboard
+        </button>
+      </div>
+    );
+  }
+
+  return <AuthProvider user={user}>{children}</AuthProvider>;
 }
