@@ -19,6 +19,7 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import packageJson from "@/package.json";
+import { useAdminAuth } from "@/components/admin/AuthContext";
 
 const navItems = [
   {
@@ -27,7 +28,7 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
-    label: "Users",
+    label: "Customers",
     href: "/admin/users",
     icon: Users,
   },
@@ -50,19 +51,16 @@ const navItems = [
     label: "Test DVLA",
     href: "/admin/test-dvla",
     icon: FileSearch,
-    superAdminOnly: true,
   },
   {
     label: "API Settings",
     href: "/admin/api-settings",
     icon: Settings2,
-    superAdminOnly: true,
   },
   {
     label: "Update",
     href: "/admin/update",
     icon: RefreshCw,
-    superAdminOnly: true,
   },
   {
     label: "Settings",
@@ -74,6 +72,29 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const { user } = useAdminAuth();
+
+  const filteredNavItems = navItems.filter((item) => {
+    const permissionMap: Record<string, string> = {
+      Dashboard: "dashboard",
+      Customers: "customers",
+      Vehicles: "vehicles",
+      Orders: "orders",
+      Tyres: "tyres",
+      Settings: "settings",
+      "Test DVLA": "test_dvla",
+      "API Settings": "api_settings",
+      "Update": "update",
+    };
+
+    const requiredPerm = permissionMap[item.label];
+    if (requiredPerm && user?.role?.name !== "super_admin") {
+      if (!user?.permissions?.includes(requiredPerm)) {
+        return false;
+      }
+    }
+    return true;
+  });
 
   return (
     <aside
@@ -107,7 +128,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
@@ -131,11 +152,6 @@ export default function Sidebar() {
               />
               {!collapsed && (
                 <span className="whitespace-nowrap overflow-hidden">{item.label}</span>
-              )}
-              {!collapsed && item.superAdminOnly && (
-                <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-sidebar-accent text-sidebar-accent-foreground font-medium">
-                  SA
-                </span>
               )}
             </Link>
           );

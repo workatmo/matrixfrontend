@@ -6,6 +6,7 @@ import { Bell, ChevronDown, LogOut, Moon, Sun, User } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAdminAuth } from "@/components/admin/AuthContext";
 
 interface HeaderProps {
   title?: string;
@@ -16,6 +17,7 @@ export default function Header({ title = "Super Admin" }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
+  const { user } = useAdminAuth();
   // resolvedTheme is undefined until hydration; default to "dark" so icon renders immediately
   const isDark = (resolvedTheme ?? "dark") === "dark";
 
@@ -54,8 +56,8 @@ export default function Header({ title = "Super Admin" }: HeaderProps) {
               <User className="w-4 h-4 text-muted-foreground" />
             </div>
             <div className="hidden sm:block text-left">
-              <p className="text-foreground text-sm font-medium leading-none">Admin</p>
-              <p className="text-muted-foreground text-xs mt-0.5">admin@matrix.com</p>
+              <p className="text-foreground text-sm font-medium leading-none">{user?.name || "Admin"}</p>
+              <p className="text-muted-foreground text-xs mt-0.5">{user?.email || ""}</p>
             </div>
             <ChevronDown
               className={cn(
@@ -69,8 +71,8 @@ export default function Header({ title = "Super Admin" }: HeaderProps) {
           {dropdownOpen && (
             <div className="absolute right-0 top-full mt-2 w-48 bg-popover border border-border rounded-xl shadow-2xl overflow-hidden z-50">
               <div className="px-4 py-3 border-b border-border">
-                <p className="text-popover-foreground text-sm font-medium">Admin User</p>
-                <p className="text-muted-foreground text-xs">admin@matrix.com</p>
+                <p className="text-popover-foreground text-sm font-medium">{user?.name || "Admin User"}</p>
+                <p className="text-muted-foreground text-xs">{user?.email || ""}</p>
               </div>
               <div className="p-1">
                 <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
