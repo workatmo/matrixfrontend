@@ -21,6 +21,7 @@ interface ApiDisplayEntry {
   icon: React.ElementType;
   iconBg: string;
   enabled: boolean;
+  keyEditable: boolean;
 }
 
 const API_SETTINGS_ICON_BY_TYPE: Record<
@@ -58,6 +59,20 @@ function canonicalApiCopy(r: ApiSettingResource): {
   description: string;
   iconType: string;
 } {
+  if (r.key_name === "brand_ai_generate") {
+    return {
+      name: "Brands Generate with AI",
+      description: "Toggle Brand AI generation button visibility and usage in admin.",
+      iconType: "workatmo_tyre",
+    };
+  }
+  if (r.key_name === "size_ai_generate") {
+    return {
+      name: "Sizes Generate with AI",
+      description: "Toggle Size AI generation button visibility and usage in admin.",
+      iconType: "workatmo_tyre",
+    };
+  }
   if (r.key_name === "openai") {
     return {
       name: "Workatmo Tyre Api",
@@ -76,15 +91,17 @@ function canonicalApiCopy(r: ApiSettingResource): {
 function resourceToEntry(r: ApiSettingResource): ApiDisplayEntry {
   const copy = canonicalApiCopy(r);
   const meta = iconMetaForType(copy.iconType);
+  const keyEditable = !["brand_ai_generate", "size_ai_generate", "tyre_description_ai_generate"].includes(r.key_name);
   return {
     id: r.id,
     name: copy.name,
     description: copy.description,
-    keyDisplay: r.value ?? (r.has_key ? "••••••••" : "No key configured"),
+    keyDisplay: r.value ?? (r.has_key ? "••••••••" : ""),
     hasKey: r.has_key,
     icon: meta.icon,
     iconBg: meta.iconBg,
     enabled: r.is_enabled,
+    keyEditable,
   };
 }
 
@@ -98,11 +115,12 @@ function mergeFromResource(
     ...entry,
     name: copy.name,
     description: copy.description,
-    keyDisplay: r.value ?? (r.has_key ? "••••••••" : "No key configured"),
+    keyDisplay: r.value ?? (r.has_key ? "••••••••" : ""),
     hasKey: r.has_key,
     icon: meta.icon,
     iconBg: meta.iconBg,
     enabled: r.is_enabled,
+    keyEditable: !["brand_ai_generate", "size_ai_generate", "tyre_description_ai_generate"].includes(r.key_name),
   };
 }
 
@@ -370,9 +388,11 @@ export default function ApiSettingsPage() {
                           {api.description}
                         </p>
 
-                        <code className="mt-2.5 inline-block text-xs text-muted-foreground bg-muted border border-border px-3 py-1.5 rounded-lg font-mono max-w-full truncate w-full">
-                          {api.keyDisplay}
-                        </code>
+                        {api.keyEditable && api.hasKey ? (
+                          <code className="mt-2.5 inline-block text-xs text-muted-foreground bg-muted border border-border px-3 py-1.5 rounded-lg font-mono max-w-full truncate w-full">
+                            {api.keyDisplay}
+                          </code>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -388,14 +408,16 @@ export default function ApiSettingsPage() {
                         {api.enabled ? "Enabled" : "Disabled"}
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setEditing(api)}
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg border border-border hover:border-ring transition-colors"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      Edit Key
-                    </button>
+                    {api.keyEditable ? (
+                      <button
+                        type="button"
+                        onClick={() => setEditing(api)}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg border border-border hover:border-ring transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        Edit Key
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               );

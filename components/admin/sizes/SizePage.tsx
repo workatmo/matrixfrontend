@@ -23,6 +23,7 @@ import {
   downloadSizeTemplate,
   exportSizes,
   generateAdminSizes,
+  getApiSettings,
   importSizesFile,
   listAdminSizes,
   updateAdminSize,
@@ -75,6 +76,7 @@ export default function SizePage() {
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiSaving, setAiSaving] = useState(false);
   const [aiGenerated, setAiGenerated] = useState<Array<{ width: number; profile: number; rim: number; label: string; selected: boolean }>>([]);
+  const [showAiGenerateButton, setShowAiGenerateButton] = useState(false);
 
   const loadSizes = useCallback(async () => {
     setLoading(true);
@@ -92,6 +94,20 @@ export default function SizePage() {
   useEffect(() => {
     void loadSizes();
   }, [loadSizes]);
+
+  useEffect(() => {
+    const loadAiToggles = async () => {
+      try {
+        const settings = await getApiSettings();
+        const enabled = settings.some((s) => s.key_name === "size_ai_generate" && s.is_enabled);
+        setShowAiGenerateButton(enabled);
+      } catch {
+        setShowAiGenerateButton(false);
+      }
+    };
+
+    void loadAiToggles();
+  }, []);
 
   const openAdd = () => {
     setMode("add");
@@ -356,10 +372,12 @@ export default function SizePage() {
             <Button type="button" onClick={openAdd}>
               Add Size
             </Button>
-            <Button type="button" variant="secondary" onClick={() => setAiOpen(true)}>
-              <Sparkles className="w-4 h-4 mr-2" />
-              Generate Sizes with Workatmo AI
-            </Button>
+            {showAiGenerateButton ? (
+              <Button type="button" variant="secondary" onClick={() => setAiOpen(true)}>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Generate Sizes with Workatmo AI
+              </Button>
+            ) : null}
           </div>
         </div>
 
