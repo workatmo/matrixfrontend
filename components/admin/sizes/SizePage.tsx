@@ -22,11 +22,29 @@ import {
   deleteAdminSize,
   downloadSizeTemplate,
   exportSizes,
+  generateAdminSizes,
   importSizesFile,
   listAdminSizes,
   updateAdminSize,
 } from "@/lib/api";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const EMPTY_DRAFT = { width: "", profile: "", rim: "" } as const;
 
@@ -50,6 +68,13 @@ export default function SizePage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draft, setDraft] = useState<{ width: string; profile: string; rim: string }>(EMPTY_DRAFT);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiCountry, setAiCountry] = useState<"UK" | "Europe" | "Global">("UK");
+  const [aiCount, setAiCount] = useState("10");
+  const [aiVehicleType, setAiVehicleType] = useState<"car" | "suv" | "van" | "">("");
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiSaving, setAiSaving] = useState(false);
+  const [aiGenerated, setAiGenerated] = useState<Array<{ width: number; profile: number; rim: number; label: string; selected: boolean }>>([]);
 
   const loadSizes = useCallback(async () => {
     setLoading(true);
@@ -217,6 +242,87 @@ export default function SizePage() {
     }
   };
 
+  const handleGenerateSizes = async () => {
+    const countNum = Number(aiCount);
+    if (!Number.isInteger(countNum) || countNum < 1 || countNum > 100) {
+      toast.error("Number of sizes must be a whole number between 1 and 100.");
+      return;
+    }
+
+    setAiGenerating(true);
+    try {
+      const res = await generateAdminSizes({
+        country: aiCountry,
+        count: countNum,
+        ...(aiVehicleType ? { vehicle_type: aiVehicleType } : {}),
+      });
+
+      const existing = new Set(sizes.map((s) => `${s.width}|${s.profile}|${s.rim}`));
+      const next = res.sizes.map((item) => ({
+        width: item.width,
+        profile: item.profile,
+        rim: item.rim,
+        label: `${item.width}/${item.profile} R${item.rim}`,
+        selected: !existing.has(`${item.width}|${item.profile}|${item.rim}`),
+      }));
+
+      setAiGenerated(next);
+      toast.success(`Generated ${next.length} sizes with Workatmo AI.`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate sizes.");
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const handleSaveSelectedGeneratedSizes = async () => {
+    const selected = aiGenerated.filter((row) => row.selected);
+    if (selected.length === 0) {
+      toast.error("Select at least one generated size to save.");
+      return;
+    }
+
+    setAiSaving(true);
+    try {
+      const existing = new Set(sizes.map((s) => `${s.width}|${s.profile}|${s.rim}`));
+      const uniqueSelection: Array<{ width: number; profile: number; rim: number; label: string }> = [];
+      const localSeen = new Set<string>();
+
+      for (const row of selected) {
+        const key = `${row.width}|${row.profile}|${row.rim}`;
+        if (existing.has(key) || localSeen.has(key)) continue;
+        localSeen.add(key);
+        uniqueSelection.push({
+          width: row.width,
+          profile: row.profile,
+          rim: row.rim,
+          label: `${row.width}/${row.profile} R${row.rim}`,
+        });
+      }
+
+      if (uniqueSelection.length === 0) {
+        toast.success("All selected sizes already exist.");
+        setAiOpen(false);
+        return;
+      }
+
+      const created: Size[] = [];
+      for (const row of uniqueSelection) {
+        const saved = await createAdminSize(row);
+        created.push(saved);
+      }
+
+      setSizes((prev) => [...prev, ...created].sort((a, b) => a.label.localeCompare(b.label)));
+      setAiOpen(false);
+      setAiGenerated([]);
+      toast.success(`Saved ${created.length} size(s).`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save selected sizes.");
+    } finally {
+      setAiSaving(false);
+    }
+  };
+
   return (
     <AdminLayout title="Sizes">
       <div className="space-y-6">
@@ -249,6 +355,10 @@ export default function SizePage() {
             />
             <Button type="button" onClick={openAdd}>
               Add Size
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setAiOpen(true)}>
+              <Sparkles className="w-4 h-4 mr-2" />
+              Generate Sizes with Workatmo AI
             </Button>
           </div>
         </div>
@@ -341,6 +451,128 @@ export default function SizePage() {
             void handleSave(values);
           }}
         />
+
+        <Dialog open={aiOpen} onOpenChange={setAiOpen}>
+          <DialogContent className="sm:max-w-2xl p-6">
+            <DialogHeader>
+              <DialogTitle>Generate Sizes with Workatmo AI</DialogTitle>
+              <DialogDescription>
+                Generate tyre sizes, preview them, then select which ones to save.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Country</Label>
+                  <Select value={aiCountry} onValueChange={(value) => setAiCountry((value as "UK" | "Europe" | "Global") ?? "UK")}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UK">UK</SelectItem>
+                      <SelectItem value="Europe">Europe</SelectItem>
+                      <SelectItem value="Global">Global</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="ai-size-count">Number of Sizes</Label>
+                  <Input
+                    id="ai-size-count"
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={aiCount}
+                    onChange={(e) => setAiCount(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Vehicle Type (optional)</Label>
+                <Select value={aiVehicleType || "none"} onValueChange={(value) => setAiVehicleType(value === "none" ? "" : (value as "car" | "suv" | "van"))}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select vehicle type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="car">Car</SelectItem>
+                    <SelectItem value="suv">SUV</SelectItem>
+                    <SelectItem value="van">Van</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-2">
+                <Button type="button" disabled={aiGenerating || aiSaving} onClick={() => void handleGenerateSizes()}>
+                  {aiGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                  Generate
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={aiGenerating || aiSaving || aiGenerated.length === 0}
+                  onClick={() => void handleGenerateSizes()}
+                >
+                  Regenerate
+                </Button>
+              </div>
+
+              {aiGenerated.length > 0 && (
+                <div className="rounded-lg border p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">Generated Sizes Preview</p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setAiGenerated((prev) => prev.map((row) => ({ ...row, selected: true })))}
+                    >
+                      Select All
+                    </Button>
+                  </div>
+                  <div className="max-h-60 overflow-auto space-y-2">
+                    {aiGenerated.map((row, idx) => {
+                      const exists = sizes.some((s) => s.width === row.width && s.profile === row.profile && s.rim === row.rim);
+                      return (
+                        <label key={`${row.width}-${row.profile}-${row.rim}-${idx}`} className="flex items-center justify-between border rounded-md px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              checked={row.selected}
+                              onCheckedChange={(checked) =>
+                                setAiGenerated((prev) =>
+                                  prev.map((item, itemIdx) => (itemIdx === idx ? { ...item, selected: Boolean(checked) } : item)),
+                                )
+                              }
+                            />
+                            <span className="text-sm">{row.label}</span>
+                          </div>
+                          {exists ? <span className="text-xs text-muted-foreground">Already exists</span> : null}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="bg-transparent border-0 p-0 mt-2">
+              <Button type="button" variant="secondary" onClick={() => setAiOpen(false)} disabled={aiGenerating || aiSaving}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => void handleSaveSelectedGeneratedSizes()}
+                disabled={aiGenerating || aiSaving || aiGenerated.length === 0}
+              >
+                {aiSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Save Selected
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );
