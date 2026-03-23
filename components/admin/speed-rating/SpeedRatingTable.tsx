@@ -42,17 +42,17 @@ export default function SpeedRatingTable({
               aria-label="Select all speed ratings"
             />
           </TableHead>
-          <TableHead className="text-white">Rating</TableHead>
-          <TableHead className="text-white">Max Speed (km/h)</TableHead>
-          <TableHead className="text-white">Description</TableHead>
-          <TableHead className="text-white">Status</TableHead>
-          <TableHead className="text-right text-white">Actions</TableHead>
+          <TableHead>Rating</TableHead>
+          <TableHead>Max Speed (km/h)</TableHead>
+          <TableHead>Description</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {rows.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={6} className="text-center text-white/70">
+            <TableCell colSpan={6} className="text-center text-muted-foreground">
               No speed ratings yet.
             </TableCell>
           </TableRow>
@@ -66,16 +66,16 @@ export default function SpeedRatingTable({
                   aria-label={`Select ${item.rating}`}
                 />
               </TableCell>
-              <TableCell className="font-medium text-white">{item.rating}</TableCell>
-              <TableCell className="text-white/80">{item.maxSpeed}</TableCell>
-              <TableCell className="text-white/80">{item.description || "—"}</TableCell>
-              <TableCell className="text-white/80">{item.status === "active" ? "Active" : "Inactive"}</TableCell>
+              <TableCell className="font-medium">{item.rating}</TableCell>
+              <TableCell>{item.maxSpeed}</TableCell>
+              <TableCell>{item.description || "—"}</TableCell>
+              <TableCell>{item.status === "active" ? "Active" : "Inactive"}</TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-2">
-                  <Button type="button" variant="ghost" onClick={() => onEdit(item)} className="text-white hover:bg-white/10">
+                  <Button type="button" variant="ghost" onClick={() => onEdit(item)}>
                     Edit
                   </Button>
-                  <Button type="button" variant="destructive" onClick={() => onDelete(item)} className="bg-red-600 hover:bg-red-700">
+                  <Button type="button" variant="destructive" onClick={() => onDelete(item)}>
                     Delete
                   </Button>
                 </div>

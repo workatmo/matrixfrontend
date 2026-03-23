@@ -449,6 +449,17 @@ export interface AdminBrandPayload {
   is_active: boolean;
 }
 
+export interface AdminGenerateBrandsPayload {
+  country: string;
+  count: 5 | 10 | 20;
+}
+
+export interface AdminGenerateBrandsResponse {
+  country: string;
+  count: number;
+  brands: string[];
+}
+
 export async function listAdminBrands(): Promise<AdminBrand[]> {
   const data = await request<{ data: { brands: AdminBrand[] } }>("/admin/attributes/brand");
   return data.data.brands;
@@ -456,6 +467,14 @@ export async function listAdminBrands(): Promise<AdminBrand[]> {
 
 export async function createAdminBrand(payload: AdminBrandPayload): Promise<AdminBrand> {
   const data = await request<{ data: AdminBrand }>("/admin/attributes/brand", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function generateAdminBrands(payload: AdminGenerateBrandsPayload): Promise<AdminGenerateBrandsResponse> {
+  const data = await request<{ data: AdminGenerateBrandsResponse }>("/admin/attributes/brand/generate", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -543,6 +562,26 @@ export interface AdminSizePayload {
   label?: string;
 }
 
+export interface AdminGenerateSizesPayload {
+  country: "UK" | "Europe" | "Global";
+  count: number;
+  vehicle_type?: "car" | "suv" | "van";
+}
+
+export interface AdminGeneratedSize {
+  width: number;
+  profile: number;
+  rim: number;
+  label: string;
+}
+
+export interface AdminGenerateSizesResponse {
+  country: string;
+  count: number;
+  vehicle_type: string | null;
+  sizes: AdminGeneratedSize[];
+}
+
 export async function listAdminSizes(): Promise<AdminSize[]> {
   const data = await request<{ data: { sizes: AdminSize[] } }>("/admin/attributes/size");
   return data.data.sizes;
@@ -550,6 +589,14 @@ export async function listAdminSizes(): Promise<AdminSize[]> {
 
 export async function createAdminSize(payload: AdminSizePayload): Promise<AdminSize> {
   const data = await request<{ data: AdminSize }>("/admin/attributes/size", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function generateAdminSizes(payload: AdminGenerateSizesPayload): Promise<AdminGenerateSizesResponse> {
+  const data = await request<{ data: AdminGenerateSizesResponse }>("/admin/ai/generate-sizes", {
     method: "POST",
     body: JSON.stringify(payload),
   });

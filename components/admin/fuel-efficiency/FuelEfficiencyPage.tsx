@@ -214,15 +214,15 @@ export default function FuelEfficiencyPage() {
                 e.currentTarget.value = "";
               }}
             />
-            <Button type="button" onClick={handleAdd} className="bg-white text-black hover:bg-white/90">
+            <Button type="button" onClick={handleAdd}>
               Add Rating
             </Button>
           </div>
         </div>
 
         {selectedIds.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[#1f1f1f] bg-black text-white p-3">
-            <span className="text-sm text-white/80">{selectedIds.length} selected</span>
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3">
+            <span className="text-sm text-muted-foreground">{selectedIds.length} selected</span>
             <Button
               type="button"
               variant="destructive"
@@ -234,19 +234,19 @@ export default function FuelEfficiencyPage() {
           </div>
         )}
 
-        <Card className="bg-black text-white border-[#1f1f1f] rounded-xl">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-white">Fuel Efficiency</CardTitle>
-              <CardDescription className="text-white/70 mt-1">
+              <CardTitle>Fuel Efficiency</CardTitle>
+              <CardDescription className="mt-1">
                 Add, edit, bulk delete, import, and export fuel ratings.
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="rounded-lg border border-[#1f1f1f] overflow-hidden">
+            <div className="rounded-xl border border-border overflow-hidden">
               {loading ? (
-                <div className="flex items-center gap-2 text-sm text-white/70 p-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground p-4">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Loading fuel efficiency ratings...
                 </div>

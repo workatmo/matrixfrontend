@@ -5,6 +5,7 @@ import {
   bulkDeleteAdminBrands,
   createAdminBrand,
   deleteAdminBrand,
+  generateAdminBrands,
   listAdminBrands,
   updateAdminBrand,
   uploadBrandLogo,
@@ -14,7 +15,7 @@ import {
   type AdminBrand,
 } from "@/lib/api";
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
-import { Loader2, Save, Upload, X, Download, UploadCloud } from "lucide-react";
+import { Loader2, Save, Upload, X, Download, UploadCloud, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
   Card,
@@ -36,6 +37,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface BrandFormState {
   name: string;
@@ -156,6 +172,12 @@ export default function BrandAttributesPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<BrandFormState>(INITIAL_FORM);
   const [brokenBrandLogos, setBrokenBrandLogos] = useState<Record<number, boolean>>({});
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiCountry, setAiCountry] = useState("United Kingdom");
+  const [aiCount, setAiCount] = useState<5 | 10 | 20>(10);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiSaving, setAiSaving] = useState(false);
+  const [aiGeneratedBrands, setAiGeneratedBrands] = useState<Array<{ name: string; selected: boolean }>>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -325,6 +347,72 @@ export default function BrandAttributesPage() {
     }
   };
 
+  const handleOpenAiModal = () => {
+    setAiModalOpen(true);
+    setAiGeneratedBrands([]);
+  };
+
+  const handleGenerateBrands = async () => {
+    setAiGenerating(true);
+    try {
+      const generated = await generateAdminBrands({
+        country: aiCountry,
+        count: aiCount,
+      });
+
+      const existingLower = new Set(brands.map((b) => b.name.trim().toLowerCase()));
+      const next = generated.brands.map((name) => ({
+        name,
+        selected: !existingLower.has(name.trim().toLowerCase()),
+      }));
+      setAiGeneratedBrands(next);
+      toast.success(`Generated ${next.length} brands with Workatmo AI.`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate brands.");
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const handleSaveSelectedGeneratedBrands = async () => {
+    const selected = aiGeneratedBrands.filter((item) => item.selected).map((item) => item.name.trim());
+    if (selected.length === 0) {
+      toast.error("Select at least one brand to save.");
+      return;
+    }
+
+    setAiSaving(true);
+    try {
+      const existingLower = new Set(brands.map((b) => b.name.trim().toLowerCase()));
+      const toCreate = selected.filter((name) => !existingLower.has(name.toLowerCase()));
+
+      if (toCreate.length === 0) {
+        toast.success("All selected brands already exist.");
+        setAiModalOpen(false);
+        return;
+      }
+
+      const created: AdminBrand[] = [];
+      for (const name of toCreate) {
+        const row = await createAdminBrand({
+          name,
+          logo_url: null,
+          is_active: true,
+        });
+        created.push(row);
+      }
+
+      setBrands((prev) => [...prev, ...created].sort((a, b) => a.name.localeCompare(b.name)));
+      setAiModalOpen(false);
+      setAiGeneratedBrands([]);
+      toast.success(`Saved ${created.length} brand(s) successfully.`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save selected brands.");
+    } finally {
+      setAiSaving(false);
+    }
+  };
+
   return (
     <AdminLayout title="Brand">
       <div className="space-y-6">
@@ -370,6 +458,10 @@ export default function BrandAttributesPage() {
               <Button disabled={saving} onClick={() => void handleSubmit()}>
                 {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                 {editingId ? "Update Brand" : "Create Brand"}
+              </Button>
+              <Button type="button" variant="secondary" onClick={handleOpenAiModal}>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Generate with Workatmo AI
               </Button>
               {editingId && (
                 <Button type="button" variant="secondary" onClick={resetForm}>
@@ -543,6 +635,146 @@ export default function BrandAttributesPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={aiModalOpen} onOpenChange={setAiModalOpen}>
+        <DialogContent className="sm:max-w-xl p-6">
+          <DialogHeader>
+            <DialogTitle>Generate Brands with Workatmo AI</DialogTitle>
+            <DialogDescription>
+              Choose a country and quantity, generate a preview, then select what to save.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Country</Label>
+                <Select value={aiCountry} onValueChange={(value) => setAiCountry(value ?? "United Kingdom")}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[
+                      "United Kingdom",
+                      "United States",
+                      "Germany",
+                      "France",
+                      "Italy",
+                      "Spain",
+                      "India",
+                      "Japan",
+                      "Australia",
+                      "Canada",
+                    ].map((country) => (
+                      <SelectItem key={country} value={country}>
+                        {country}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Number of Brands</Label>
+                <Select
+                  value={String(aiCount)}
+                  onValueChange={(value) => {
+                    const next = Number(value ?? "10");
+                    if (next === 5 || next === 10 || next === 20) {
+                      setAiCount(next);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select count" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex justify-start">
+              <Button type="button" onClick={() => void handleGenerateBrands()} disabled={aiGenerating}>
+                {aiGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                {aiGenerating ? "Generating..." : "Generate Brands"}
+              </Button>
+            </div>
+
+            {aiGeneratedBrands.length > 0 && (
+              <div className="space-y-2 rounded-lg border p-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Preview</p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setAiGeneratedBrands((prev) =>
+                        prev.map((item) => ({
+                          ...item,
+                          selected: true,
+                        })),
+                      )
+                    }
+                  >
+                    Select All
+                  </Button>
+                </div>
+
+                <div className="max-h-56 overflow-auto space-y-2">
+                  {aiGeneratedBrands.map((item, idx) => {
+                    const existsAlready = brands.some((b) => b.name.trim().toLowerCase() === item.name.trim().toLowerCase());
+                    return (
+                      <label
+                        key={`${item.name}-${idx}`}
+                        className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            checked={item.selected}
+                            onCheckedChange={(checked) =>
+                              setAiGeneratedBrands((prev) =>
+                                prev.map((row, rowIndex) =>
+                                  rowIndex === idx
+                                    ? {
+                                        ...row,
+                                        selected: Boolean(checked),
+                                      }
+                                    : row,
+                                ),
+                              )
+                            }
+                          />
+                          <span className="text-sm">{item.name}</span>
+                        </div>
+                        {existsAlready ? <span className="text-xs text-muted-foreground">Already exists</span> : null}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="bg-transparent border-0 p-0 mt-2">
+            <Button type="button" variant="secondary" onClick={() => setAiModalOpen(false)} disabled={aiSaving || aiGenerating}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleSaveSelectedGeneratedBrands()}
+              disabled={aiSaving || aiGenerating || aiGeneratedBrands.length === 0}
+            >
+              {aiSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Save Selected Brands
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
