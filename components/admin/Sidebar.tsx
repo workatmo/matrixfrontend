@@ -15,13 +15,27 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
+  Tags,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 import { cn } from "@/lib/utils";
 import packageJson from "@/package.json";
 import { useAdminAuth } from "@/components/admin/AuthContext";
 
-const navItems = [
+type NavChildItem = {
+  label: string;
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+};
+
+type NavItem = {
+  label: string;
+  href?: string;
+  icon: ComponentType<{ className?: string }>;
+  children?: NavChildItem[];
+};
+
+const navItems: NavItem[] = [
   {
     label: "Dashboard",
     href: "/admin/dashboard",
@@ -48,6 +62,18 @@ const navItems = [
     icon: CircleDot,
   },
   {
+    label: "Attributes",
+    icon: Tags,
+    children: [
+      { label: "Brand", href: "/admin/attributes/brand", icon: CircleDot },
+      { label: "Size", href: "/admin/attributes/size", icon: CircleDot },
+      { label: "Season", href: "/admin/attributes/season", icon: CircleDot },
+      { label: "Tyre Type", href: "/admin/attributes/tyre-type", icon: CircleDot },
+      { label: "Fuel Efficiency", href: "/admin/attributes/fuel-efficiency", icon: CircleDot },
+      { label: "Speed Rating", href: "/admin/attributes/speed-rating", icon: CircleDot },
+    ],
+  },
+  {
     label: "Test DVLA",
     href: "/admin/test-dvla",
     icon: FileSearch,
@@ -72,6 +98,9 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    Attributes: true,
+  });
   const { user } = useAdminAuth();
 
   const filteredNavItems = navItems.filter((item) => {
@@ -81,6 +110,7 @@ export default function Sidebar() {
       Vehicles: "vehicles",
       Orders: "orders",
       Tyres: "tyres",
+      Attributes: "attributes",
       Settings: "settings",
       "Test DVLA": "test_dvla",
       "API Settings": "api_settings",
@@ -130,30 +160,96 @@ export default function Sidebar() {
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
         {filteredNavItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          const isGroup = !item.href && Array.isArray(item.children);
+          const isActive = item.href
+            ? pathname === item.href || pathname.startsWith(item.href + "/")
+            : item.children?.some((child) => pathname === child.href || pathname.startsWith(child.href + "/")) ?? false;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            <div key={item.href ?? item.label} className="space-y-1">
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                    isActive
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                      : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  )}
+                >
+                  <Icon
+                    className={cn(
+                      "flex-shrink-0 w-5 h-5 transition-colors",
+                      isActive
+                        ? "text-sidebar-primary-foreground"
+                        : "text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground"
+                    )}
+                  />
+                  {!collapsed && (
+                    <span className="whitespace-nowrap overflow-hidden">{item.label}</span>
+                  )}
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setOpenGroups((prev) => ({
+                      ...prev,
+                      [item.label]: !prev[item.label],
+                    }))
+                  }
+                  className={cn(
+                    "group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                    isActive
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  )}
+                >
+                  <Icon className="flex-shrink-0 w-5 h-5 text-sidebar-foreground/60" />
+                  {!collapsed && (
+                    <>
+                      <span className="whitespace-nowrap overflow-hidden text-left flex-1">{item.label}</span>
+                      <ChevronRight
+                        className={cn(
+                          "w-4 h-4 transition-transform duration-200",
+                          openGroups[item.label] && "rotate-90"
+                        )}
+                      />
+                    </>
+                  )}
+                </button>
               )}
-            >
-              <Icon
-                className={cn(
-                  "flex-shrink-0 w-5 h-5 transition-colors",
-                  isActive
-                    ? "text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground"
-                )}
-              />
-              {!collapsed && (
-                <span className="whitespace-nowrap overflow-hidden">{item.label}</span>
+
+              {!collapsed && isGroup && openGroups[item.label] && (
+                <div className="ml-6 space-y-1">
+                  {item.children?.map((child) => {
+                    const ChildIcon = child.icon;
+                    const childActive = pathname === child.href || pathname.startsWith(child.href + "/");
+                    return (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        className={cn(
+                          "group flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200",
+                          childActive
+                            ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                            : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        )}
+                      >
+                        <ChildIcon
+                          className={cn(
+                            "flex-shrink-0 w-4 h-4 transition-colors",
+                            childActive
+                              ? "text-sidebar-primary-foreground"
+                              : "text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground"
+                          )}
+                        />
+                        <span className="whitespace-nowrap overflow-hidden">{child.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
               )}
-            </Link>
+            </div>
           );
         })}
       </nav>
