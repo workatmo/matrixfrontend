@@ -1,3 +1,5 @@
+"use client";
+
 import AdminLayout from "@/components/admin/Layout";
 import StatCard from "@/components/admin/StatCard";
 import {
@@ -10,6 +12,8 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
+import { useSettings } from "@/components/admin/SettingsProvider";
+import { formatCurrency } from "@/lib/formatters";
 
 const stats = [
   {
@@ -64,7 +68,17 @@ const statusStyles: Record<string, string> = {
 export default function DashboardPage() {
   return (
     <AdminLayout title="Dashboard">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <DashboardContent />
+    </AdminLayout>
+  );
+}
+
+function DashboardContent() {
+  const { settings } = useSettings();
+
+  return (
+    <>
+      <div className="w-full space-y-6">
         {/* Page Header */}
         <div>
           <h2 className="text-2xl font-bold text-foreground">Overview</h2>
@@ -76,7 +90,11 @@ export default function DashboardPage() {
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {stats.map((stat) => (
-            <StatCard key={stat.title} {...stat} />
+            <StatCard 
+              key={stat.title} 
+              {...stat} 
+              value={stat.title === "Revenue" ? formatCurrency(stat.value, settings?.currency) : stat.value}
+            />
           ))}
         </div>
 
@@ -171,7 +189,9 @@ export default function DashboardPage() {
                         {order.status}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-sm text-foreground font-medium">{order.amount}</td>
+                    <td className="px-5 py-3.5 text-sm text-foreground font-medium">
+                      {formatCurrency(order.amount, settings?.currency)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -179,6 +199,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </>
   );
 }

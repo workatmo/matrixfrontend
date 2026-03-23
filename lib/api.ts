@@ -429,6 +429,11 @@ export interface AdminSettings {
   platform_fee_enabled: string; // "1" | "0"
   maintenance_mode: string;     // "1" | "0"
   maintenance_message: string;
+  timezone: string;
+  country: string;
+  currency: string;
+  online_payment: string;       // "1" | "0"
+  cash_on_delivery: string;     // "1" | "0"
 }
 
 export async function getAdminSettings(): Promise<AdminSettings> {

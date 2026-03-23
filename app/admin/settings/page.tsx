@@ -11,13 +11,13 @@ import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
-  CheckCircle2,
   Loader2,
   Save,
   Upload,
   X,
   ImageIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   Card,
@@ -32,6 +32,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { TIMEZONES, COUNTRIES, CURRENCIES, COUNTRY_CURRENCY_MAP } from "@/lib/constants";
 
 const INITIAL: AdminSettings = {
   brand_name: "",
@@ -46,6 +54,11 @@ const INITIAL: AdminSettings = {
   platform_fee_enabled: "1",
   maintenance_mode: "0",
   maintenance_message: "",
+  timezone: "",
+  country: "",
+  currency: "",
+  online_payment: "1",
+  cash_on_delivery: "1",
 };
 
 // ── Logo upload widget ────────────────────────────────────────────────────────
@@ -192,12 +205,11 @@ function LogoUpload({
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const [mounted, setMounted] = useState(false);
   const [settings, setSettings] = useState<AdminSettings>(INITIAL);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -217,6 +229,11 @@ export default function SettingsPage() {
         platform_fee_enabled: data.platform_fee_enabled ?? "1",
         maintenance_mode: data.maintenance_mode ?? "0",
         maintenance_message: data.maintenance_message ?? "We are currently undergoing scheduled maintenance. Please check back soon.",
+        timezone: data.timezone ?? "",
+        country: data.country ?? "",
+        currency: data.currency ?? "",
+        online_payment: data.online_payment ?? "1",
+        cash_on_delivery: data.cash_on_delivery ?? "1",
       });
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Failed to load settings.");
@@ -225,23 +242,38 @@ export default function SettingsPage() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { 
+    setMounted(true);
+    void load(); 
+  }, [load]);
+
+  const formatTz = (tz: string) => {
+    if (!mounted) return tz;
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        timeZoneName: 'shortOffset',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      return `${tz} (${formatter.format(new Date())})`;
+    } catch {
+      return tz;
+    }
+  };
 
   const set = (key: keyof AdminSettings) => (value: string) =>
     setSettings((prev) => ({ ...prev, [key]: value }));
 
-  const toggle = (key: "vat_enabled" | "platform_fee_enabled" | "maintenance_mode") => (checked: boolean) =>
+  const toggle = (key: "vat_enabled" | "platform_fee_enabled" | "maintenance_mode" | "online_payment" | "cash_on_delivery") => (checked: boolean) =>
     setSettings((prev) => ({ ...prev, [key]: checked ? "1" : "0" }));
 
   const handleSave = async () => {
     if (!settings.brand_name.trim()) {
-      setSaveStatus("error");
-      setSaveMessage("Brand Name is required.");
+      toast.error("Brand Name is required.");
       return;
     }
     setSaving(true);
-    setSaveStatus("idle");
-    setSaveMessage(null);
     try {
       const updated = await saveAdminSettings(settings);
       setSettings({
@@ -257,25 +289,33 @@ export default function SettingsPage() {
         platform_fee_enabled: updated.platform_fee_enabled ?? "1",
         maintenance_mode: updated.maintenance_mode ?? "0",
         maintenance_message: updated.maintenance_message ?? "We are currently undergoing scheduled maintenance. Please check back soon.",
+        timezone: updated.timezone ?? "",
+        country: updated.country ?? "",
+        currency: updated.currency ?? "",
+        online_payment: updated.online_payment ?? "1",
+        cash_on_delivery: updated.cash_on_delivery ?? "1",
       });
-      setSaveStatus("success");
-      setSaveMessage("Settings saved successfully.");
+      toast.success("Settings saved successfully.");
     } catch (e) {
-      setSaveStatus("error");
-      setSaveMessage(e instanceof Error ? e.message : "Failed to save settings.");
+      toast.error(e instanceof Error ? e.message : "Failed to save settings.");
     } finally {
       setSaving(false);
-      setTimeout(() => { setSaveStatus("idle"); setSaveMessage(null); }, 4000);
     }
   };
 
   const vatEnabled = settings.vat_enabled === "1";
   const feeEnabled = settings.platform_fee_enabled === "1";
   const maintenanceEnabled = settings.maintenance_mode === "1";
+  const onlinePaymentEnabled = settings.online_payment === "1";
+  const codEnabled = settings.cash_on_delivery === "1";
+
+  const currencySymbol = mounted && settings.currency
+    ? new Intl.NumberFormat(undefined, { style: 'currency', currency: settings.currency }).formatToParts(0).find(p => p.type === 'currency')?.value || "£"
+    : "£";
 
   return (
     <AdminLayout title="Settings">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="w-full space-y-8">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
           <p className="text-muted-foreground mt-2">
@@ -426,9 +466,9 @@ export default function SettingsPage() {
 
                   {feeEnabled && (
                     <div className="space-y-3 max-w-[240px] pt-2 animate-in fade-in slide-in-from-top-2">
-                      <Label htmlFor="platform_fee">Fee Amount (£)</Label>
+                      <Label htmlFor="platform_fee">Fee Amount ({currencySymbol})</Label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">£</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{currencySymbol}</span>
                         <Input 
                           id="platform_fee" 
                           type="number" 
@@ -443,6 +483,100 @@ export default function SettingsPage() {
                       <p className="text-[0.8rem] text-muted-foreground">Amount added at checkout.</p>
                     </div>
                   )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ── Localization Settings ── */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Localization Settings</CardTitle>
+                <CardDescription>
+                  Configure regional settings such as time zone, country, and currency.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-3">
+                    <Label htmlFor="timezone">Time Zone</Label>
+                    <Select value={settings.timezone} onValueChange={(val) => set("timezone")(val ?? "")}>
+                      <SelectTrigger id="timezone" className="w-full">
+                        <SelectValue placeholder="Select Time Zone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIMEZONES.map((tz) => (
+                          <SelectItem key={tz} value={tz}>
+                            <span suppressHydrationWarning>{formatTz(tz)}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[0.8rem] text-muted-foreground">Default system time zone.</p>
+                  </div>
+                  <div className="space-y-3">
+                    <Label htmlFor="country">Country</Label>
+                    <Select 
+                      value={settings.country} 
+                      onValueChange={(val) => {
+                        const country = val ?? "";
+                        set("country")(country);
+                        if (country && COUNTRY_CURRENCY_MAP[country]) {
+                          set("currency")(COUNTRY_CURRENCY_MAP[country]);
+                        }
+                      }}
+                    >
+                      <SelectTrigger id="country" className="w-full">
+                        <SelectValue placeholder="Select Country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COUNTRIES.map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[0.8rem] text-muted-foreground">Main country of operation.</p>
+                  </div>
+                  <div className="space-y-3">
+                    <Label htmlFor="currency">Currency</Label>
+                    <Select value={settings.currency} onValueChange={(val) => set("currency")(val ?? "")}>
+                      <SelectTrigger id="currency" className="w-full">
+                        <SelectValue placeholder="Select Currency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CURRENCIES.map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[0.8rem] text-muted-foreground">Default currency code.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ── Payment Methods ── */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment Methods</CardTitle>
+                <CardDescription>
+                  Configure allowed payment methods for checkout.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between rounded-lg border p-4 shadow-sm">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Online Payment</Label>
+                    <p className="text-[0.8rem] text-muted-foreground">Allow customers to pay via credit card, Apple Pay, etc.</p>
+                  </div>
+                  <Switch checked={onlinePaymentEnabled} onCheckedChange={toggle("online_payment")} />
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg border p-4 shadow-sm">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Cash on Delivery</Label>
+                    <p className="text-[0.8rem] text-muted-foreground">Allow customers to pay when the service is completed.</p>
+                  </div>
+                  <Switch checked={codEnabled} onCheckedChange={toggle("cash_on_delivery")} />
                 </div>
               </CardContent>
             </Card>
@@ -481,28 +615,7 @@ export default function SettingsPage() {
             </Card>
 
             {/* Status & Save Button */}
-            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-4 pt-4">
-              <div className="w-full sm:w-1/2">
-                {saveStatus !== "idle" && saveMessage && (
-                  <div
-                    role="alert"
-                    className={cn(
-                      "flex items-center gap-2.5 rounded-lg border px-4 py-3 text-sm font-medium animate-in fade-in",
-                      saveStatus === "success"
-                        ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                        : "border-destructive/20 bg-destructive/10 text-destructive"
-                    )}
-                  >
-                    {saveStatus === "success" ? (
-                      <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    )}
-                    {saveMessage}
-                  </div>
-                )}
-              </div>
-              
+            <div className="flex justify-end pt-4">
               <Button
                 disabled={saving}
                 onClick={handleSave}

@@ -1,5 +1,9 @@
+"use client";
+
 import AdminLayout from "@/components/admin/Layout";
 import { Search, Filter, MoreHorizontal, ShoppingCart, Clock, CheckCircle } from "lucide-react";
+import { useSettings } from "@/components/admin/SettingsProvider";
+import { formatCurrency, formatLocalizedDate } from "@/lib/formatters";
 
 const orders = [
   { id: "#ORD-001", customer: "James Wilson", vehicle: "Tesla Model 3", service: "Full Set Tyres", date: "Mar 15, 2025", amount: "£240.00", status: "Completed" },
@@ -20,7 +24,17 @@ const statusStyles: Record<string, string> = {
 export default function OrdersPage() {
   return (
     <AdminLayout title="Orders">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <OrdersContent />
+    </AdminLayout>
+  );
+}
+
+function OrdersContent() {
+  const { settings } = useSettings();
+
+  return (
+    <>
+      <div className="w-full space-y-6">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -92,8 +106,12 @@ export default function OrdersPage() {
                     <td className="px-5 py-4 text-sm text-foreground">{order.customer}</td>
                     <td className="px-5 py-4 text-sm text-muted-foreground">{order.vehicle}</td>
                     <td className="px-5 py-4 text-sm text-muted-foreground">{order.service}</td>
-                    <td className="px-5 py-4 text-sm text-muted-foreground/60">{order.date}</td>
-                    <td className="px-5 py-4 text-sm text-foreground font-medium">{order.amount}</td>
+                    <td className="px-5 py-4 text-sm text-muted-foreground/60">
+                      {formatLocalizedDate(order.date, settings?.timezone)}
+                    </td>
+                    <td className="px-5 py-4 text-sm text-foreground font-medium">
+                      {formatCurrency(order.amount, settings?.currency)}
+                    </td>
                     <td className="px-5 py-4">
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusStyles[order.status]}`}>
                         {order.status}
@@ -111,6 +129,6 @@ export default function OrdersPage() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </>
   );
 }

@@ -1,6 +1,7 @@
 import Sidebar from "@/components/admin/Sidebar";
 import Header from "@/components/admin/Header";
 import { cn } from "@/lib/utils";
+import { SettingsProvider } from "@/components/admin/SettingsProvider";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -29,7 +30,9 @@ export default function AdminLayout({ children, title, fullPage }: AdminLayoutPr
               : "overflow-y-auto p-6"
           )}
         >
-          {children}
+          <SettingsProvider>
+            {children}
+          </SettingsProvider>
         </main>
       </div>
     </div>
