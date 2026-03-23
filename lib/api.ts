@@ -414,6 +414,210 @@ export async function runDvlaTestLookup(vrm: string): Promise<DvlaTestResult> {
   return json.data;
 }
 
+export interface AdminTyre {
+  id: number;
+  brand_id: number;
+  brand_name: string | null;
+  model: string;
+  size_id: number;
+  size_label: string | null;
+  season_id: number | null;
+  season_name: string | null;
+  tyre_type_id: number | null;
+  tyre_type_name: string | null;
+  fuel_efficiency_id: number | null;
+  fuel_efficiency_rating: string | null;
+  speed_rating_id: number | null;
+  speed_rating: string | null;
+  price: number;
+  stock: number;
+  description: string | null;
+  status: boolean;
+  image_url: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminCreateTyrePayload {
+  brand_id: number;
+  model: string;
+  size_id: number;
+  season_id?: number | null;
+  tyre_type_id?: number | null;
+  fuel_efficiency_id?: number | null;
+  speed_rating_id?: number | null;
+  price: number;
+  stock: number;
+  description?: string | null;
+  status?: boolean | "active" | "inactive";
+  image?: File;
+}
+
+export async function listAdminTyres(): Promise<AdminTyre[]> {
+  const data = await request<{ data: { tyres: AdminTyre[] } }>("/admin/tyres");
+  return data.data.tyres;
+}
+
+export async function createAdminTyre(payload: AdminCreateTyrePayload): Promise<AdminTyre> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)
+      : null;
+
+  const form = new FormData();
+  form.append("brand_id", String(payload.brand_id));
+  form.append("model", payload.model);
+  form.append("size_id", String(payload.size_id));
+  if (payload.season_id !== undefined && payload.season_id !== null) form.append("season_id", String(payload.season_id));
+  if (payload.tyre_type_id !== undefined && payload.tyre_type_id !== null) form.append("tyre_type_id", String(payload.tyre_type_id));
+  if (payload.fuel_efficiency_id !== undefined && payload.fuel_efficiency_id !== null) form.append("fuel_efficiency_id", String(payload.fuel_efficiency_id));
+  if (payload.speed_rating_id !== undefined && payload.speed_rating_id !== null) form.append("speed_rating_id", String(payload.speed_rating_id));
+  form.append("price", String(payload.price));
+  form.append("stock", String(payload.stock));
+  if (payload.description !== undefined && payload.description !== null) form.append("description", payload.description);
+  if (payload.status !== undefined) form.append("status", typeof payload.status === "boolean" ? (payload.status ? "1" : "0") : payload.status);
+  if (payload.image) form.append("image", payload.image);
+
+  const res = await fetch(`${BASE_URL}/admin/tyres`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form,
+  });
+
+  const text = await res.text();
+  const json = parseJsonRecord(text);
+
+  if (!res.ok) {
+    const fromApi = messageFromApiPayload(json);
+    throw new Error(fromApi ?? describeHttpFailure(res.status, text));
+  }
+
+  return json.data as AdminTyre;
+}
+
+export async function updateAdminTyre(id: number, payload: AdminCreateTyrePayload): Promise<AdminTyre> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)
+      : null;
+
+  const form = new FormData();
+  form.append("brand_id", String(payload.brand_id));
+  form.append("model", payload.model);
+  form.append("size_id", String(payload.size_id));
+  if (payload.season_id !== undefined && payload.season_id !== null) form.append("season_id", String(payload.season_id));
+  if (payload.tyre_type_id !== undefined && payload.tyre_type_id !== null) form.append("tyre_type_id", String(payload.tyre_type_id));
+  if (payload.fuel_efficiency_id !== undefined && payload.fuel_efficiency_id !== null) form.append("fuel_efficiency_id", String(payload.fuel_efficiency_id));
+  if (payload.speed_rating_id !== undefined && payload.speed_rating_id !== null) form.append("speed_rating_id", String(payload.speed_rating_id));
+  form.append("price", String(payload.price));
+  form.append("stock", String(payload.stock));
+  if (payload.description !== undefined && payload.description !== null) form.append("description", payload.description);
+  if (payload.status !== undefined) form.append("status", typeof payload.status === "boolean" ? (payload.status ? "1" : "0") : payload.status);
+  if (payload.image) form.append("image", payload.image);
+
+  const res = await fetch(`${BASE_URL}/admin/tyres/${id}`, {
+    method: "PUT",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form,
+  });
+
+  const text = await res.text();
+  const json = parseJsonRecord(text);
+
+  if (!res.ok) {
+    const fromApi = messageFromApiPayload(json);
+    throw new Error(fromApi ?? describeHttpFailure(res.status, text));
+  }
+
+  return json.data as AdminTyre;
+}
+
+export async function deleteAdminTyre(id: number): Promise<void> {
+  await request(`/admin/tyres/${id}`, { method: "DELETE" });
+}
+
+export async function bulkUpdateAdminTyresStatus(ids: number[], status: "active" | "inactive"): Promise<number> {
+  const data = await request<{ data: { updated: number } }>("/admin/tyres/bulk-status", {
+    method: "PATCH",
+    body: JSON.stringify({ ids, status }),
+  });
+  return data.data.updated;
+}
+
+export async function bulkDeleteAdminTyres(ids: number[]): Promise<number> {
+  const data = await request<{ data: { deleted: number } }>("/admin/tyres/bulk-delete", {
+    method: "DELETE",
+    body: JSON.stringify({ ids }),
+  });
+  return data.data.deleted;
+}
+
+export async function downloadTyresTemplate(format: "xlsx" | "csv" = "xlsx"): Promise<void> {
+  const ext = format === "xlsx" ? "xlsx" : "csv";
+  await downloadAdminFile(`/admin/tyres/template?format=${format}`, `tyres-template.${ext}`);
+}
+
+export async function exportTyres(format: "xlsx" | "csv" = "xlsx"): Promise<void> {
+  const ext = format === "xlsx" ? "xlsx" : "csv";
+  await downloadAdminFile(`/admin/tyres/export?format=${format}`, `tyres-export.${ext}`);
+}
+
+export async function importTyresFile(file: File): Promise<{ created: number; updated: number; skipped: number }> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)
+      : null;
+
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await fetch(`${BASE_URL}/admin/tyres/import`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form,
+  });
+
+  const text = await res.text();
+  const json = parseJsonRecord(text);
+  if (!res.ok) {
+    const fromApi = messageFromApiPayload(json);
+    throw new Error(fromApi ?? describeHttpFailure(res.status, text));
+  }
+
+  const data = json.data as Record<string, unknown>;
+  return {
+    created: typeof data.created === "number" ? data.created : 0,
+    updated: typeof data.updated === "number" ? data.updated : 0,
+    skipped: typeof data.skipped === "number" ? data.skipped : 0,
+  };
+}
+
+export async function generateTyreDescription(payload: {
+  brand: string;
+  model: string;
+  size?: string;
+  season?: string;
+  tyre_type?: string;
+}): Promise<string> {
+  const data = await request<{ data: { description: string } }>("/admin/ai/generate-tyre-description", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data.description;
+}
+
 // ── Admin Attributes (placeholder endpoints) ────────────────────────────────
 
 export type AdminAttributeType =

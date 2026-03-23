@@ -11,6 +11,7 @@ import {
   uploadBrandLogo,
   downloadAdminBrandTemplate,
   downloadAdminBrandExport,
+  getApiSettings,
   importAdminBrands,
   type AdminBrand,
 } from "@/lib/api";
@@ -172,6 +173,7 @@ export default function BrandAttributesPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<BrandFormState>(INITIAL_FORM);
   const [brokenBrandLogos, setBrokenBrandLogos] = useState<Record<number, boolean>>({});
+  const [showAiGenerateButton, setShowAiGenerateButton] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [aiCountry, setAiCountry] = useState("United Kingdom");
   const [aiCount, setAiCount] = useState<5 | 10 | 20>(10);
@@ -196,6 +198,20 @@ export default function BrandAttributesPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const loadAiToggles = async () => {
+      try {
+        const settings = await getApiSettings();
+        const enabled = settings.some((s) => s.key_name === "brand_ai_generate" && s.is_enabled);
+        setShowAiGenerateButton(enabled);
+      } catch {
+        setShowAiGenerateButton(false);
+      }
+    };
+
+    void loadAiToggles();
+  }, []);
 
   const resetForm = () => {
     setEditingId(null);
@@ -459,10 +475,12 @@ export default function BrandAttributesPage() {
                 {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                 {editingId ? "Update Brand" : "Create Brand"}
               </Button>
-              <Button type="button" variant="secondary" onClick={handleOpenAiModal}>
-                <Sparkles className="w-4 h-4 mr-2" />
-                Generate with Workatmo AI
-              </Button>
+              {showAiGenerateButton ? (
+                <Button type="button" variant="secondary" onClick={handleOpenAiModal}>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Generate with Workatmo AI
+                </Button>
+              ) : null}
               {editingId && (
                 <Button type="button" variant="secondary" onClick={resetForm}>
                   Cancel Edit
