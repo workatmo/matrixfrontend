@@ -414,6 +414,695 @@ export async function runDvlaTestLookup(vrm: string): Promise<DvlaTestResult> {
   return json.data;
 }
 
+// ── Admin Attributes (placeholder endpoints) ────────────────────────────────
+
+export type AdminAttributeType =
+  | "brand"
+  | "size"
+  | "season"
+  | "tyre-type"
+  | "fuel-efficiency"
+  | "speed-rating";
+
+export interface AdminAttributeListResponse {
+  type: AdminAttributeType;
+  items: Array<Record<string, unknown>>;
+}
+
+export async function listAdminAttributes(type: AdminAttributeType): Promise<AdminAttributeListResponse> {
+  const data = await request<{ data: AdminAttributeListResponse }>(`/admin/attributes/${type}`);
+  return data.data;
+}
+
+export interface AdminBrand {
+  id: number;
+  name: string;
+  logo_url: string | null;
+  is_active: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminBrandPayload {
+  name: string;
+  logo_url: string | null;
+  is_active: boolean;
+}
+
+export async function listAdminBrands(): Promise<AdminBrand[]> {
+  const data = await request<{ data: { brands: AdminBrand[] } }>("/admin/attributes/brand");
+  return data.data.brands;
+}
+
+export async function createAdminBrand(payload: AdminBrandPayload): Promise<AdminBrand> {
+  const data = await request<{ data: AdminBrand }>("/admin/attributes/brand", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminBrand(id: number, payload: AdminBrandPayload): Promise<AdminBrand> {
+  const data = await request<{ data: AdminBrand }>(`/admin/attributes/brand/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminBrand(id: number): Promise<void> {
+  await request(`/admin/attributes/brand/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function bulkDeleteAdminBrands(ids: number[]): Promise<number> {
+  const data = await request<{ data: { deleted: number } }>("/admin/attributes/brand/bulk-delete", {
+    method: "DELETE",
+    body: JSON.stringify({ ids }),
+  });
+  return data.data.deleted;
+}
+
+export async function downloadAdminBrandTemplate(): Promise<void> {
+  await downloadAdminFile("/admin/attributes/brand/template", "brands_template.xlsx");
+}
+
+export async function downloadAdminBrandExport(): Promise<void> {
+  await downloadAdminFile("/admin/attributes/brand/export", "brands_export.xlsx");
+}
+
+export interface AdminBrandImportResult {
+  created: number;
+  updated: number;
+  skipped: number;
+  errors?: string[];
+}
+
+export async function importAdminBrands(file: File): Promise<AdminBrandImportResult> {
+  const token = typeof window !== "undefined" ? localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) : null;
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await fetch(`${BASE_URL}/admin/attributes/brand/import`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form,
+  });
+
+  const text = await res.text();
+  const json = parseJsonRecord(text);
+
+  if (!res.ok) {
+    const fromApi = messageFromApiPayload(json);
+    throw new Error(fromApi ?? describeHttpFailure(res.status, text));
+  }
+
+  const data = json.data as AdminBrandImportResult;
+  return data;
+}
+
+export interface AdminSize {
+  id: number;
+  width: number;
+  profile: number;
+  rim: number;
+  label: string;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminSizePayload {
+  width: number;
+  profile: number;
+  rim: number;
+  label?: string;
+}
+
+export async function listAdminSizes(): Promise<AdminSize[]> {
+  const data = await request<{ data: { sizes: AdminSize[] } }>("/admin/attributes/size");
+  return data.data.sizes;
+}
+
+export async function createAdminSize(payload: AdminSizePayload): Promise<AdminSize> {
+  const data = await request<{ data: AdminSize }>("/admin/attributes/size", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminSize(id: number, payload: AdminSizePayload): Promise<AdminSize> {
+  const data = await request<{ data: AdminSize }>(`/admin/attributes/size/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminSize(id: number): Promise<void> {
+  await request(`/admin/attributes/size/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function bulkUpdateAdminSizes(
+  ids: number[],
+  payload: { width?: number; profile?: number; rim?: number },
+): Promise<number> {
+  const data = await request<{ data: { updated: number } }>("/admin/attributes/size/bulk-update", {
+    method: "PATCH",
+    body: JSON.stringify({ ids, ...payload }),
+  });
+  return data.data.updated;
+}
+
+export async function bulkDeleteAdminSizes(ids: number[]): Promise<number> {
+  const data = await request<{ data: { deleted: number } }>("/admin/attributes/size/bulk-delete", {
+    method: "DELETE",
+    body: JSON.stringify({ ids }),
+  });
+  return data.data.deleted;
+}
+
+export async function downloadSizeTemplate(format: "xlsx" | "csv" = "xlsx"): Promise<void> {
+  const ext = format === "xlsx" ? "xlsx" : "csv";
+  await downloadAdminFile(`/admin/attributes/size/template?format=${format}`, `size-template.${ext}`);
+}
+
+export async function exportSizes(format: "xlsx" | "csv" = "xlsx"): Promise<void> {
+  const ext = format === "xlsx" ? "xlsx" : "csv";
+  await downloadAdminFile(`/admin/attributes/size/export?format=${format}`, `sizes-export.${ext}`);
+}
+
+export async function importSizesFile(file: File): Promise<{ created: number; updated: number; skipped: number }> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)
+      : null;
+
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await fetch(`${BASE_URL}/admin/attributes/size/import`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form,
+  });
+
+  const text = await res.text();
+  const json = parseJsonRecord(text);
+  if (!res.ok) {
+    const fromApi = messageFromApiPayload(json);
+    throw new Error(fromApi ?? describeHttpFailure(res.status, text));
+  }
+
+  const data = json.data as Record<string, unknown>;
+  return {
+    created: typeof data.created === "number" ? data.created : 0,
+    updated: typeof data.updated === "number" ? data.updated : 0,
+    skipped: typeof data.skipped === "number" ? data.skipped : 0,
+  };
+}
+
+export type AdminSeasonStatus = "active" | "inactive";
+
+export interface AdminSeason {
+  id: number;
+  name: string;
+  description: string | null;
+  status: AdminSeasonStatus;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export type AdminTyreTypeStatus = "active" | "inactive";
+
+export interface AdminTyreType {
+  id: number;
+  name: string;
+  description: string | null;
+  status: AdminTyreTypeStatus;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminTyreTypePayload {
+  name: string;
+  description?: string | null;
+  status: AdminTyreTypeStatus;
+}
+
+export type AdminFuelEfficiencyRating = "A" | "B" | "C" | "D" | "E";
+export type AdminFuelEfficiencyStatus = "active" | "inactive";
+
+export interface AdminFuelEfficiency {
+  id: number;
+  rating: AdminFuelEfficiencyRating;
+  description: string | null;
+  status: AdminFuelEfficiencyStatus;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminFuelEfficiencyPayload {
+  rating: AdminFuelEfficiencyRating;
+  description?: string | null;
+  status: AdminFuelEfficiencyStatus;
+}
+
+export type AdminSpeedRatingStatus = "active" | "inactive";
+
+export interface AdminSpeedRating {
+  id: number;
+  rating: string;
+  max_speed: number;
+  description: string | null;
+  status: AdminSpeedRatingStatus;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminSpeedRatingPayload {
+  rating: string;
+  max_speed: number;
+  description?: string | null;
+  status: AdminSpeedRatingStatus;
+}
+
+export async function listAdminSpeedRatings(): Promise<AdminSpeedRating[]> {
+  const data = await request<{ data: { speed_ratings: AdminSpeedRating[] } }>("/admin/attributes/speed-rating");
+  return data.data.speed_ratings;
+}
+
+export async function createAdminSpeedRating(payload: AdminSpeedRatingPayload): Promise<AdminSpeedRating> {
+  const data = await request<{ data: AdminSpeedRating }>("/admin/attributes/speed-rating", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminSpeedRating(id: number, payload: AdminSpeedRatingPayload): Promise<AdminSpeedRating> {
+  const data = await request<{ data: AdminSpeedRating }>(`/admin/attributes/speed-rating/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminSpeedRating(id: number): Promise<void> {
+  await request(`/admin/attributes/speed-rating/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function bulkDeleteAdminSpeedRatings(ids: number[]): Promise<number> {
+  const data = await request<{ data: { deleted: number } }>("/admin/attributes/speed-rating/bulk-delete", {
+    method: "DELETE",
+    body: JSON.stringify({ ids }),
+  });
+  return data.data.deleted;
+}
+
+export async function downloadSpeedRatingTemplate(format: "xlsx" | "csv" = "xlsx"): Promise<void> {
+  const ext = format === "xlsx" ? "xlsx" : "csv";
+  await downloadAdminFile(`/admin/attributes/speed-rating/template?format=${format}`, `speed-rating-template.${ext}`);
+}
+
+export async function exportSpeedRatings(format: "xlsx" | "csv" = "xlsx"): Promise<void> {
+  const ext = format === "xlsx" ? "xlsx" : "csv";
+  await downloadAdminFile(`/admin/attributes/speed-rating/export?format=${format}`, `speed-ratings-export.${ext}`);
+}
+
+export async function importSpeedRatingsFile(file: File): Promise<{ created: number; updated: number; skipped: number }> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)
+      : null;
+
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await fetch(`${BASE_URL}/admin/attributes/speed-rating/import`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form,
+  });
+
+  const text = await res.text();
+  const json = parseJsonRecord(text);
+  if (!res.ok) {
+    const fromApi = messageFromApiPayload(json);
+    throw new Error(fromApi ?? describeHttpFailure(res.status, text));
+  }
+
+  const data = json.data as Record<string, unknown>;
+  return {
+    created: typeof data.created === "number" ? data.created : 0,
+    updated: typeof data.updated === "number" ? data.updated : 0,
+    skipped: typeof data.skipped === "number" ? data.skipped : 0,
+  };
+}
+
+export async function listAdminFuelEfficiencies(): Promise<AdminFuelEfficiency[]> {
+  const data = await request<{ data: { fuel_efficiencies: AdminFuelEfficiency[] } }>("/admin/attributes/fuel-efficiency");
+  return data.data.fuel_efficiencies;
+}
+
+export async function createAdminFuelEfficiency(payload: AdminFuelEfficiencyPayload): Promise<AdminFuelEfficiency> {
+  const data = await request<{ data: AdminFuelEfficiency }>("/admin/attributes/fuel-efficiency", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminFuelEfficiency(id: number, payload: AdminFuelEfficiencyPayload): Promise<AdminFuelEfficiency> {
+  const data = await request<{ data: AdminFuelEfficiency }>(`/admin/attributes/fuel-efficiency/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminFuelEfficiency(id: number): Promise<void> {
+  await request(`/admin/attributes/fuel-efficiency/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function bulkDeleteAdminFuelEfficiencies(ids: number[]): Promise<number> {
+  const data = await request<{ data: { deleted: number } }>("/admin/attributes/fuel-efficiency/bulk-delete", {
+    method: "DELETE",
+    body: JSON.stringify({ ids }),
+  });
+  return data.data.deleted;
+}
+
+export async function downloadFuelEfficiencyTemplate(format: "xlsx" | "csv" = "xlsx"): Promise<void> {
+  const ext = format === "xlsx" ? "xlsx" : "csv";
+  await downloadAdminFile(`/admin/attributes/fuel-efficiency/template?format=${format}`, `fuel-efficiency-template.${ext}`);
+}
+
+export async function exportFuelEfficiencies(format: "xlsx" | "csv" = "xlsx"): Promise<void> {
+  const ext = format === "xlsx" ? "xlsx" : "csv";
+  await downloadAdminFile(`/admin/attributes/fuel-efficiency/export?format=${format}`, `fuel-efficiency-export.${ext}`);
+}
+
+export async function importFuelEfficienciesFile(file: File): Promise<{ created: number; updated: number; skipped: number }> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)
+      : null;
+
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await fetch(`${BASE_URL}/admin/attributes/fuel-efficiency/import`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form,
+  });
+
+  const text = await res.text();
+  const json = parseJsonRecord(text);
+  if (!res.ok) {
+    const fromApi = messageFromApiPayload(json);
+    throw new Error(fromApi ?? describeHttpFailure(res.status, text));
+  }
+
+  const data = json.data as Record<string, unknown>;
+  return {
+    created: typeof data.created === "number" ? data.created : 0,
+    updated: typeof data.updated === "number" ? data.updated : 0,
+    skipped: typeof data.skipped === "number" ? data.skipped : 0,
+  };
+}
+
+export async function listAdminTyreTypes(): Promise<AdminTyreType[]> {
+  const data = await request<{ data: { tyre_types: AdminTyreType[] } }>("/admin/attributes/tyre-type");
+  return data.data.tyre_types;
+}
+
+export async function createAdminTyreType(payload: AdminTyreTypePayload): Promise<AdminTyreType> {
+  const data = await request<{ data: AdminTyreType }>("/admin/attributes/tyre-type", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminTyreType(id: number, payload: AdminTyreTypePayload): Promise<AdminTyreType> {
+  const data = await request<{ data: AdminTyreType }>(`/admin/attributes/tyre-type/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminTyreType(id: number): Promise<void> {
+  await request(`/admin/attributes/tyre-type/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function bulkUpdateAdminTyreTypes(ids: number[], status: AdminTyreTypeStatus): Promise<number> {
+  const data = await request<{ data: { updated: number } }>("/admin/attributes/tyre-type/bulk-update", {
+    method: "PATCH",
+    body: JSON.stringify({ ids, status }),
+  });
+  return data.data.updated;
+}
+
+export async function bulkDeleteAdminTyreTypes(ids: number[]): Promise<number> {
+  const data = await request<{ data: { deleted: number } }>("/admin/attributes/tyre-type/bulk-delete", {
+    method: "DELETE",
+    body: JSON.stringify({ ids }),
+  });
+  return data.data.deleted;
+}
+
+export async function downloadTyreTypeTemplate(format: "xlsx" | "csv" = "xlsx"): Promise<void> {
+  const ext = format === "xlsx" ? "xlsx" : "csv";
+  await downloadAdminFile(`/admin/attributes/tyre-type/template?format=${format}`, `tyre-type-template.${ext}`);
+}
+
+export async function exportTyreTypes(format: "xlsx" | "csv" = "xlsx"): Promise<void> {
+  const ext = format === "xlsx" ? "xlsx" : "csv";
+  await downloadAdminFile(`/admin/attributes/tyre-type/export?format=${format}`, `tyre-types-export.${ext}`);
+}
+
+export async function importTyreTypesFile(file: File): Promise<{ created: number; updated: number; skipped: number }> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)
+      : null;
+
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await fetch(`${BASE_URL}/admin/attributes/tyre-type/import`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form,
+  });
+
+  const text = await res.text();
+  const json = parseJsonRecord(text);
+  if (!res.ok) {
+    const fromApi = messageFromApiPayload(json);
+    throw new Error(fromApi ?? describeHttpFailure(res.status, text));
+  }
+
+  const data = json.data as Record<string, unknown>;
+  return {
+    created: typeof data.created === "number" ? data.created : 0,
+    updated: typeof data.updated === "number" ? data.updated : 0,
+    skipped: typeof data.skipped === "number" ? data.skipped : 0,
+  };
+}
+
+export interface AdminSeasonPayload {
+  name: string;
+  description?: string | null;
+  status: AdminSeasonStatus;
+}
+
+export async function listAdminSeasons(): Promise<AdminSeason[]> {
+  const data = await request<{ data: { seasons: AdminSeason[] } }>("/admin/attributes/season");
+  return data.data.seasons;
+}
+
+export async function createAdminSeason(payload: AdminSeasonPayload): Promise<AdminSeason> {
+  const data = await request<{ data: AdminSeason }>("/admin/attributes/season", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminSeason(id: number, payload: AdminSeasonPayload): Promise<AdminSeason> {
+  const data = await request<{ data: AdminSeason }>(`/admin/attributes/season/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminSeason(id: number): Promise<void> {
+  await request(`/admin/attributes/season/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function bulkUpdateAdminSeasons(ids: number[], status: AdminSeasonStatus): Promise<number> {
+  const data = await request<{ data: { updated: number } }>("/admin/attributes/season/bulk-update", {
+    method: "PATCH",
+    body: JSON.stringify({ ids, status }),
+  });
+  return data.data.updated;
+}
+
+export async function bulkDeleteAdminSeasons(ids: number[]): Promise<number> {
+  const data = await request<{ data: { deleted: number } }>("/admin/attributes/season/bulk-delete", {
+    method: "DELETE",
+    body: JSON.stringify({ ids }),
+  });
+  return data.data.deleted;
+}
+
+async function downloadAdminFile(path: string, fileName: string): Promise<void> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)
+      : null;
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      Accept: "*/*",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    const json = parseJsonRecord(text);
+    const fromApi = messageFromApiPayload(json);
+    throw new Error(fromApi ?? describeHttpFailure(res.status, text));
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function downloadSeasonTemplate(format: "xlsx" | "csv" = "xlsx"): Promise<void> {
+  const ext = format === "xlsx" ? "xlsx" : "csv";
+  await downloadAdminFile(`/admin/attributes/season/template?format=${format}`, `season-template.${ext}`);
+}
+
+export async function exportSeasons(format: "xlsx" | "csv" = "xlsx"): Promise<void> {
+  const ext = format === "xlsx" ? "xlsx" : "csv";
+  await downloadAdminFile(`/admin/attributes/season/export?format=${format}`, `seasons-export.${ext}`);
+}
+
+export async function importSeasonsFile(file: File): Promise<{ created: number; updated: number; skipped: number }> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)
+      : null;
+
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await fetch(`${BASE_URL}/admin/attributes/season/import`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form,
+  });
+
+  const text = await res.text();
+  const json = parseJsonRecord(text);
+  if (!res.ok) {
+    const fromApi = messageFromApiPayload(json);
+    throw new Error(fromApi ?? describeHttpFailure(res.status, text));
+  }
+
+  const data = json.data as Record<string, unknown>;
+  return {
+    created: typeof data.created === "number" ? data.created : 0,
+    updated: typeof data.updated === "number" ? data.updated : 0,
+    skipped: typeof data.skipped === "number" ? data.skipped : 0,
+  };
+}
+
+export async function uploadBrandLogo(file: File): Promise<string> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)
+      : null;
+
+  const form = new FormData();
+  form.append("logo", file);
+
+  const res = await fetch(`${BASE_URL}/admin/attributes/brand/logo`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form,
+  });
+
+  const text = await res.text();
+  const json = parseJsonRecord(text);
+
+  if (!res.ok) {
+    const fromApi = messageFromApiPayload(json);
+    throw new Error(fromApi ?? describeHttpFailure(res.status, text));
+  }
+
+  const url = (json.data as Record<string, unknown>)?.url;
+  if (typeof url !== "string") {
+    throw new Error("Brand logo upload failed: unexpected response.");
+  }
+  return url;
+}
+
 // ── Admin Settings ───────────────────────────────────────────────────────────
 
 export interface AdminSettings {
@@ -422,6 +1111,7 @@ export interface AdminSettings {
   website_title: string;
   address: string;
   contact_number: string;
+  contact_email: string;
   vat_number: string;
   vat_percentage: string;
   vat_enabled: string;          // "1" | "0"
@@ -434,6 +1124,14 @@ export interface AdminSettings {
   currency: string;
   online_payment: string;       // "1" | "0"
   cash_on_delivery: string;     // "1" | "0"
+  smtp_enabled: string;         // "1" | "0"
+  smtp_host: string;
+  smtp_port: string;
+  smtp_username: string;
+  smtp_password: string;
+  smtp_encryption: string;
+  smtp_from_email: string;
+  smtp_from_name: string;
 }
 
 export async function getAdminSettings(): Promise<AdminSettings> {

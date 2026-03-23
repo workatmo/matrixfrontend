@@ -47,6 +47,7 @@ const INITIAL: AdminSettings = {
   website_title: "",
   address: "",
   contact_number: "",
+  contact_email: "",
   vat_number: "",
   vat_percentage: "",
   vat_enabled: "1",
@@ -59,7 +60,33 @@ const INITIAL: AdminSettings = {
   currency: "",
   online_payment: "1",
   cash_on_delivery: "1",
+  smtp_enabled: "0",
+  smtp_host: "",
+  smtp_port: "587",
+  smtp_username: "",
+  smtp_password: "",
+  smtp_encryption: "tls",
+  smtp_from_email: "",
+  smtp_from_name: "",
 };
+
+function resolvePreviewUrl(raw: string | null): string {
+  if (!raw) return "";
+  if (raw.startsWith("blob:")) return raw;
+
+  try {
+    const parsed = new URL(raw);
+    if (parsed.pathname.startsWith("/storage/")) {
+      return `/api-backend-assets${parsed.pathname}`;
+    }
+  } catch {}
+
+  if (raw.startsWith("http://") || raw.startsWith("https://")) {
+    return raw;
+  }
+  const normalizedPath = raw.startsWith("/") ? raw : `/${raw}`;
+  return `/api-backend-assets${normalizedPath}`;
+}
 
 // ── Logo upload widget ────────────────────────────────────────────────────────
 
@@ -127,7 +154,7 @@ function LogoUpload({
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={preview}
+              src={resolvePreviewUrl(preview)}
               alt="Logo preview"
               className="max-h-32 max-w-full object-contain rounded-lg"
             />
@@ -222,6 +249,7 @@ export default function SettingsPage() {
         website_title: data.website_title ?? "",
         address: data.address ?? "",
         contact_number: data.contact_number ?? "",
+        contact_email: data.contact_email ?? "",
         vat_number: data.vat_number ?? "",
         vat_percentage: data.vat_percentage ?? "",
         vat_enabled: data.vat_enabled ?? "1",
@@ -234,6 +262,14 @@ export default function SettingsPage() {
         currency: data.currency ?? "",
         online_payment: data.online_payment ?? "1",
         cash_on_delivery: data.cash_on_delivery ?? "1",
+        smtp_enabled: data.smtp_enabled ?? "0",
+        smtp_host: data.smtp_host ?? "",
+        smtp_port: data.smtp_port ?? "587",
+        smtp_username: data.smtp_username ?? "",
+        smtp_password: data.smtp_password ?? "",
+        smtp_encryption: data.smtp_encryption ?? "tls",
+        smtp_from_email: data.smtp_from_email ?? "",
+        smtp_from_name: data.smtp_from_name ?? "",
       });
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Failed to load settings.");
@@ -265,7 +301,7 @@ export default function SettingsPage() {
   const set = (key: keyof AdminSettings) => (value: string) =>
     setSettings((prev) => ({ ...prev, [key]: value }));
 
-  const toggle = (key: "vat_enabled" | "platform_fee_enabled" | "maintenance_mode" | "online_payment" | "cash_on_delivery") => (checked: boolean) =>
+  const toggle = (key: "vat_enabled" | "platform_fee_enabled" | "maintenance_mode" | "online_payment" | "cash_on_delivery" | "smtp_enabled") => (checked: boolean) =>
     setSettings((prev) => ({ ...prev, [key]: checked ? "1" : "0" }));
 
   const handleSave = async () => {
@@ -282,6 +318,7 @@ export default function SettingsPage() {
         website_title: updated.website_title ?? "",
         address: updated.address ?? "",
         contact_number: updated.contact_number ?? "",
+        contact_email: updated.contact_email ?? "",
         vat_number: updated.vat_number ?? "",
         vat_percentage: updated.vat_percentage ?? "",
         vat_enabled: updated.vat_enabled ?? "1",
@@ -294,6 +331,14 @@ export default function SettingsPage() {
         currency: updated.currency ?? "",
         online_payment: updated.online_payment ?? "1",
         cash_on_delivery: updated.cash_on_delivery ?? "1",
+        smtp_enabled: updated.smtp_enabled ?? "0",
+        smtp_host: updated.smtp_host ?? "",
+        smtp_port: updated.smtp_port ?? "587",
+        smtp_username: updated.smtp_username ?? "",
+        smtp_password: updated.smtp_password ?? "",
+        smtp_encryption: updated.smtp_encryption ?? "tls",
+        smtp_from_email: updated.smtp_from_email ?? "",
+        smtp_from_name: updated.smtp_from_name ?? "",
       });
       toast.success("Settings saved successfully.");
     } catch (e) {
@@ -308,6 +353,7 @@ export default function SettingsPage() {
   const maintenanceEnabled = settings.maintenance_mode === "1";
   const onlinePaymentEnabled = settings.online_payment === "1";
   const codEnabled = settings.cash_on_delivery === "1";
+  const smtpEnabled = settings.smtp_enabled === "1";
 
   const currencySymbol = mounted && settings.currency
     ? new Intl.NumberFormat(undefined, { style: 'currency', currency: settings.currency }).formatToParts(0).find(p => p.type === 'currency')?.value || "£"
@@ -401,6 +447,16 @@ export default function SettingsPage() {
                       onChange={(e) => set("contact_number")(e.target.value)}
                     />
                   </div>
+                  <div className="space-y-3">
+                    <Label htmlFor="contact_email">Mail ID</Label>
+                    <Input
+                      id="contact_email"
+                      type="email"
+                      value={settings.contact_email}
+                      placeholder="e.g. support@example.com"
+                      onChange={(e) => set("contact_email")(e.target.value)}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -410,16 +466,16 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle>Business & Tax Settings</CardTitle>
                 <CardDescription>
-                  Configure VAT and platform fees applied to orders.
+                  Configure VAT/GST and platform fees applied to orders.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
-                {/* VAT Section */}
+                {/* VAT/GST Section */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between rounded-lg border p-4 shadow-sm">
                     <div className="space-y-0.5">
-                      <Label className="text-base">Enable VAT</Label>
-                      <p className="text-[0.8rem] text-muted-foreground">Apply VAT to all applicable orders and services.</p>
+                      <Label className="text-base">Enable VAT/GST</Label>
+                      <p className="text-[0.8rem] text-muted-foreground">Apply VAT or GST to all applicable orders and services.</p>
                     </div>
                     <Switch checked={vatEnabled} onCheckedChange={toggle("vat_enabled")} />
                   </div>
@@ -427,7 +483,7 @@ export default function SettingsPage() {
                   {vatEnabled && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 animate-in fade-in slide-in-from-top-2">
                       <div className="space-y-3">
-                        <Label htmlFor="vat_number">VAT Registration Number</Label>
+                        <Label htmlFor="vat_number">VAT/GST Registration Number</Label>
                         <Input 
                           id="vat_number" 
                           value={settings.vat_number} 
@@ -436,7 +492,7 @@ export default function SettingsPage() {
                         />
                       </div>
                       <div className="space-y-3">
-                        <Label htmlFor="vat_percentage">Standard VAT Rate (%)</Label>
+                        <Label htmlFor="vat_percentage">Standard VAT/GST Rate (%)</Label>
                         <Input 
                           id="vat_percentage" 
                           type="number" 
@@ -609,6 +665,108 @@ export default function SettingsPage() {
                       onChange={(e) => set("maintenance_message")(e.target.value)} 
                     />
                     <p className="text-[0.8rem] text-muted-foreground">This message will be shown to users trying to access the site.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* ── SMTP Settings ── */}
+            <Card>
+              <CardHeader>
+                <CardTitle>SMTP Settings</CardTitle>
+                <CardDescription>
+                  Configure outgoing mail server details for transactional emails.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between rounded-lg border p-4 shadow-sm">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Enable SMTP</Label>
+                    <p className="text-[0.8rem] text-muted-foreground">Turn on custom SMTP delivery for platform emails.</p>
+                  </div>
+                  <Switch checked={smtpEnabled} onCheckedChange={toggle("smtp_enabled")} />
+                </div>
+
+                {smtpEnabled && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 animate-in fade-in slide-in-from-top-2">
+                    <div className="space-y-3">
+                      <Label htmlFor="smtp_host">SMTP Host</Label>
+                      <Input
+                        id="smtp_host"
+                        value={settings.smtp_host}
+                        placeholder="e.g. smtp.mailgun.org"
+                        onChange={(e) => set("smtp_host")(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label htmlFor="smtp_port">SMTP Port</Label>
+                      <Input
+                        id="smtp_port"
+                        type="number"
+                        min="1"
+                        max="65535"
+                        value={settings.smtp_port}
+                        placeholder="587"
+                        onChange={(e) => set("smtp_port")(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label htmlFor="smtp_username">SMTP Username</Label>
+                      <Input
+                        id="smtp_username"
+                        value={settings.smtp_username}
+                        placeholder="e.g. postmaster@example.com"
+                        onChange={(e) => set("smtp_username")(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label htmlFor="smtp_password">SMTP Password</Label>
+                      <Input
+                        id="smtp_password"
+                        type="password"
+                        value={settings.smtp_password}
+                        placeholder="Enter SMTP password"
+                        onChange={(e) => set("smtp_password")(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label htmlFor="smtp_encryption">Encryption</Label>
+                      <Select value={settings.smtp_encryption} onValueChange={(val) => set("smtp_encryption")(val ?? "none")}>
+                        <SelectTrigger id="smtp_encryption" className="w-full">
+                          <SelectValue placeholder="Select encryption" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="tls">TLS</SelectItem>
+                          <SelectItem value="ssl">SSL</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label htmlFor="smtp_from_email">From Email</Label>
+                      <Input
+                        id="smtp_from_email"
+                        type="email"
+                        value={settings.smtp_from_email}
+                        placeholder="e.g. no-reply@example.com"
+                        onChange={(e) => set("smtp_from_email")(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-3 md:col-span-2">
+                      <Label htmlFor="smtp_from_name">From Name</Label>
+                      <Input
+                        id="smtp_from_name"
+                        value={settings.smtp_from_name}
+                        placeholder="e.g. Matrix Tyres"
+                        onChange={(e) => set("smtp_from_name")(e.target.value)}
+                      />
+                    </div>
                   </div>
                 )}
               </CardContent>

@@ -136,6 +136,17 @@ export default function AdminTestDvlaPage() {
                       [
                         ["Registration", str(vehicle.registrationNumber ?? vrm)],
                         ["Make", str(vehicle.make)],
+                        [
+                          "Model",
+                          str(
+                            vehicle.model ??
+                              vehicle.vehicleModel ??
+                              vehicle.modelVariant ??
+                              vehicle.variant ??
+                              vehicle.derivative,
+                            "Not provided by DVLA",
+                          ),
+                        ],
                         ["Year", str(vehicle.yearOfManufacture)],
                         ["Fuel type", str(vehicle.fuelType)],
                         ["Colour", str(vehicle.colour)],
