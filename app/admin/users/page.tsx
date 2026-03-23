@@ -11,6 +11,21 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const AVAILABLE_PERMISSIONS = [
   { id: "dashboard", label: "Dashboard" },
@@ -183,7 +198,7 @@ export default function UsersPage() {
 
   return (
     <AdminLayout title="Customers">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="w-full space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-foreground">Customers</h2>
@@ -274,15 +289,18 @@ export default function UsersPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
-                <select
-                  id="role"
+                <Select
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                  onValueChange={(val) => setFormData({ ...formData, role: val ?? "admin" })}
                 >
-                  <option value="admin">Admin</option>
-                  <option value="super_admin">Super Admin</option>
-                </select>
+                  <SelectTrigger id="role" className="w-full">
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="super_admin">Super Admin</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {formData.role === "admin" && (
@@ -345,102 +363,100 @@ export default function UsersPage() {
         )}
 
         <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  {["User", "Role", "Created", "Status", "Actions"].map((h) => (
-                    <th
-                      key={h}
-                      className={`px-5 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider ${h === 'Actions' ? 'text-right' : 'text-left'}`}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {loading ? (
-                  <tr>
-                    <td colSpan={3} className="px-5 py-8 text-sm text-muted-foreground text-center">
-                      Loading customers…
-                    </td>
-                  </tr>
-                ) : filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="px-5 py-8 text-sm text-muted-foreground text-center">
-                      No customers match.
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((user) => (
-                    <tr key={user.id} className="hover:bg-accent/30 transition-colors">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center text-xs font-bold text-foreground">
-                            {user.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="text-foreground text-sm font-medium">{user.name}</p>
-                            <p className="text-muted-foreground text-xs">{user.email}</p>
-                          </div>
+          <Table>
+            <TableHeader>
+              <TableRow className="border-b border-border hover:bg-transparent">
+                {["User", "Role", "Created", "Status", "Actions"].map((h) => (
+                  <TableHead
+                    key={h}
+                    className={`h-12 px-5 text-xs font-medium text-muted-foreground uppercase tracking-wider ${h === 'Actions' ? 'text-right' : 'text-left'}`}
+                  >
+                    {h}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-border">
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center text-sm text-muted-foreground">
+                    Loading customers…
+                  </TableCell>
+                </TableRow>
+              ) : filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center text-sm text-muted-foreground">
+                    No customers match.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filtered.map((user) => (
+                  <TableRow key={user.id} className="hover:bg-accent/30 transition-colors">
+                    <TableCell className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center text-xs font-bold text-foreground">
+                          {user.name.charAt(0).toUpperCase()}
                         </div>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-muted-foreground capitalize">
-                        {formatRole(user.role?.name)}
-                        {user.role?.name === "admin" && user.permissions?.length > 0 && (
-                           <div className="flex gap-1 flex-wrap mt-1">
-                             {user.permissions.map(p => (
-                               <span key={p} className="text-[10px] px-1.5 py-0.5 bg-muted rounded">
-                                 {p}
-                               </span>
-                             ))}
-                           </div>
-                        )}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-muted-foreground">
-                        {formatJoined(user.created_at)}
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
-                          <Switch 
-                             checked={user.is_active} 
-                             onCheckedChange={(c) => handleToggleActive(user, c)}
-                             disabled={togglingId === user.id || (user.role?.name === "super_admin" && !isSuperAdmin)}
-                          />
-                          <span className={`text-xs font-medium ${user.is_active ? 'text-green-600' : 'text-muted-foreground'}`}>
-                            {user.is_active ? 'Active' : 'Inactive'}
-                          </span>
+                        <div>
+                          <p className="text-foreground text-sm font-medium">{user.name}</p>
+                          <p className="text-muted-foreground text-xs">{user.email}</p>
                         </div>
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button 
-                             variant="ghost" 
-                             size="icon" 
-                             onClick={() => handleEdit(user)}
-                             disabled={user.role?.name === "super_admin" && !isSuperAdmin}
-                             title="Edit User"
-                          >
-                            <Edit className="w-4 h-4 text-muted-foreground" />
-                          </Button>
-                          <Button 
-                             variant="ghost" 
-                             size="icon" 
-                             onClick={() => handleDelete(user)}
-                             disabled={deletingId === user.id || (user.role?.name === "super_admin" && !isSuperAdmin) || authUser?.id === user.id}
-                             title="Delete User"
-                          >
-                            {deletingId === user.id ? <Loader2 className="w-4 h-4 animate-spin text-red-500" /> : <Trash2 className="w-4 h-4 text-red-500" />}
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-5 py-4 text-sm text-muted-foreground capitalize">
+                      {formatRole(user.role?.name)}
+                      {user.role?.name === "admin" && user.permissions?.length > 0 && (
+                         <div className="flex gap-1 flex-wrap mt-1">
+                           {user.permissions.map(p => (
+                             <span key={p} className="text-[10px] px-1.5 py-0.5 bg-muted rounded">
+                               {p}
+                             </span>
+                           ))}
+                         </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="px-5 py-4 text-sm text-muted-foreground">
+                      {formatJoined(user.created_at)}
+                    </TableCell>
+                    <TableCell className="px-5 py-4">
+                      <div className="flex items-center gap-2">
+                        <Switch 
+                           checked={user.is_active} 
+                           onCheckedChange={(c) => handleToggleActive(user, c)}
+                           disabled={togglingId === user.id || (user.role?.name === "super_admin" && !isSuperAdmin)}
+                        />
+                        <span className={`text-xs font-medium ${user.is_active ? 'text-green-600' : 'text-muted-foreground'}`}>
+                          {user.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-5 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button 
+                           variant="ghost" 
+                           size="icon" 
+                           onClick={() => handleEdit(user)}
+                           disabled={user.role?.name === "super_admin" && !isSuperAdmin}
+                           title="Edit User"
+                        >
+                          <Edit className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                        <Button 
+                           variant="ghost" 
+                           size="icon" 
+                           onClick={() => handleDelete(user)}
+                           disabled={deletingId === user.id || (user.role?.name === "super_admin" && !isSuperAdmin) || authUser?.id === user.id}
+                           title="Delete User"
+                        >
+                          {deletingId === user.id ? <Loader2 className="w-4 h-4 animate-spin text-red-500" /> : <Trash2 className="w-4 h-4 text-red-500" />}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
       </div>
     </AdminLayout>

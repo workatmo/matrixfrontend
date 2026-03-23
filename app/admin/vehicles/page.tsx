@@ -18,7 +18,7 @@ const statusStyles: Record<string, string> = {
 export default function VehiclesPage() {
   return (
     <AdminLayout title="Vehicles">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="w-full space-y-6">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -42,7 +42,7 @@ export default function VehiclesPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { label: "Total Vehicles", value: "2,156" },
             { label: "Active", value: "1,982" },

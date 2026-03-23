@@ -1,5 +1,9 @@
+"use client";
+
 import AdminLayout from "@/components/admin/Layout";
 import { Search, Plus, MoreHorizontal, CircleDot, Star } from "lucide-react";
+import { useSettings } from "@/components/admin/SettingsProvider";
+import { formatCurrency } from "@/lib/formatters";
 
 const tyres = [
   { id: 1, brand: "Michelin", model: "Pilot Sport 4S", size: "225/45 R17", type: "Summer", stock: 24, price: "£145.00", rating: 4.8 },
@@ -19,7 +23,17 @@ const typeStyles: Record<string, string> = {
 export default function TyresPage() {
   return (
     <AdminLayout title="Tyres">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <TyresContent />
+    </AdminLayout>
+  );
+}
+
+function TyresContent() {
+  const { settings } = useSettings();
+
+  return (
+    <>
+      <div className="w-full space-y-6">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -43,7 +57,7 @@ export default function TyresPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { label: "Total SKUs", value: "487" },
             { label: "In Stock", value: "6,420" },
@@ -92,7 +106,9 @@ export default function TyresPage() {
                         {t.stock === 0 ? "Out of Stock" : t.stock}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-sm text-foreground font-medium">{t.price}</td>
+                    <td className="px-5 py-4 text-sm text-foreground font-medium">
+                      {formatCurrency(t.price, settings?.currency)}
+                    </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-1">
                         <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
@@ -111,6 +127,6 @@ export default function TyresPage() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </>
   );
 }
