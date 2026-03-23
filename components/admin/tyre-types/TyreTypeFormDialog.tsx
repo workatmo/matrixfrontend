@@ -74,10 +74,10 @@ export default function TyreTypeFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-black text-white border-[#1f1f1f] p-6">
+      <DialogContent className="p-6">
         <DialogHeader>
           <DialogTitle>{mode === "add" ? "Add Tyre Type" : "Edit Tyre Type"}</DialogTitle>
-          <DialogDescription className="text-white/70">
+          <DialogDescription>
             Create and manage tyre types such as Tubeless, Run-flat, and Radial.
           </DialogDescription>
         </DialogHeader>
@@ -90,7 +90,6 @@ export default function TyreTypeFormDialog({
               value={values.name}
               onChange={(e) => setValues((prev) => ({ ...prev, name: e.target.value }))}
               placeholder="e.g. Run-flat"
-              className="bg-transparent text-white border-[#1f1f1f]"
             />
           </div>
 
@@ -101,12 +100,11 @@ export default function TyreTypeFormDialog({
               value={values.description}
               onChange={(e) => setValues((prev) => ({ ...prev, description: e.target.value }))}
               placeholder="e.g. Can run after puncture"
-              className="bg-transparent text-white border-[#1f1f1f]"
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-[#1f1f1f] p-3">
-            <span className="text-sm text-white/80">Status: {values.status === "active" ? "Active" : "Inactive"}</span>
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <span className="text-sm text-muted-foreground">Status: {values.status === "active" ? "Active" : "Inactive"}</span>
             <Switch
               checked={values.status === "active"}
               onCheckedChange={(checked) =>
@@ -128,7 +126,7 @@ export default function TyreTypeFormDialog({
             <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!values.name.trim() || isDuplicate} className="bg-white text-black hover:bg-white/90">
+            <Button type="submit" disabled={!values.name.trim() || isDuplicate}>
               {mode === "add" ? "Add Tyre Type" : "Save Changes"}
             </Button>
           </DialogFooter>

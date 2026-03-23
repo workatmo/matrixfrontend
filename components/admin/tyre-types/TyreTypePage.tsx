@@ -218,25 +218,20 @@ export default function TyreTypePage() {
                 e.currentTarget.value = "";
               }}
             />
-            <Button
-              type="button"
-              onClick={handleAdd}
-              className="bg-white text-black hover:bg-white/90"
-            >
+            <Button type="button" onClick={handleAdd}>
               Add Tyre Type
             </Button>
           </div>
         </div>
 
         {selectedIds.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[#1f1f1f] bg-black text-white p-3">
-            <span className="text-sm text-white/80">{selectedIds.length} selected</span>
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3">
+            <span className="text-sm text-muted-foreground">{selectedIds.length} selected</span>
             <Button
               type="button"
               variant="outline"
               disabled={bulkBusy}
               onClick={() => void handleBulkStatus("active")}
-              className="border-[#1f1f1f] text-white hover:bg-white/10"
             >
               Set Active
             </Button>
@@ -245,7 +240,6 @@ export default function TyreTypePage() {
               variant="outline"
               disabled={bulkBusy}
               onClick={() => void handleBulkStatus("inactive")}
-              className="border-[#1f1f1f] text-white hover:bg-white/10"
             >
               Set Inactive
             </Button>
@@ -260,19 +254,19 @@ export default function TyreTypePage() {
           </div>
         )}
 
-        <Card className="bg-black text-white border-[#1f1f1f] rounded-xl">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-white">Tyre Types</CardTitle>
-              <CardDescription className="text-white/70 mt-1">
+              <CardTitle>Tyre Types</CardTitle>
+              <CardDescription className="mt-1">
                 Add, edit, bulk update, import, and export tyre types.
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="rounded-lg border border-[#1f1f1f] overflow-hidden">
+            <div className="rounded-xl border border-border overflow-hidden">
               {loading ? (
-                <div className="flex items-center gap-2 text-sm text-white/70 p-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground p-4">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Loading tyre types...
                 </div>

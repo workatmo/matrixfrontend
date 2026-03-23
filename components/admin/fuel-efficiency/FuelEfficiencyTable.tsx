@@ -42,16 +42,16 @@ export default function FuelEfficiencyTable({
               aria-label="Select all fuel efficiency ratings"
             />
           </TableHead>
-          <TableHead className="text-white">Rating</TableHead>
-          <TableHead className="text-white">Description</TableHead>
-          <TableHead className="text-white">Status</TableHead>
-          <TableHead className="text-right text-white">Actions</TableHead>
+          <TableHead>Rating</TableHead>
+          <TableHead>Description</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {rows.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={5} className="text-center text-white/70">
+            <TableCell colSpan={5} className="text-center text-muted-foreground">
               No ratings yet.
             </TableCell>
           </TableRow>
@@ -65,15 +65,15 @@ export default function FuelEfficiencyTable({
                   aria-label={`Select ${item.rating}`}
                 />
               </TableCell>
-              <TableCell className="font-medium text-white">{item.rating}</TableCell>
-              <TableCell className="text-white/80">{item.description || "—"}</TableCell>
-              <TableCell className="text-white/80">{item.status === "active" ? "Active" : "Inactive"}</TableCell>
+              <TableCell className="font-medium">{item.rating}</TableCell>
+              <TableCell>{item.description || "—"}</TableCell>
+              <TableCell>{item.status === "active" ? "Active" : "Inactive"}</TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-2">
-                  <Button type="button" variant="ghost" onClick={() => onEdit(item)} className="text-white hover:bg-white/10">
+                  <Button type="button" variant="ghost" onClick={() => onEdit(item)}>
                     Edit
                   </Button>
-                  <Button type="button" variant="destructive" onClick={() => onDelete(item)} className="bg-red-600 hover:bg-red-700">
+                  <Button type="button" variant="destructive" onClick={() => onDelete(item)}>
                     Delete
                   </Button>
                 </div>

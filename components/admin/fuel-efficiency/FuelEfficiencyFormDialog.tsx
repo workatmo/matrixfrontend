@@ -85,10 +85,10 @@ export default function FuelEfficiencyFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-black text-white border-[#1f1f1f] p-6">
+      <DialogContent className="p-6">
         <DialogHeader>
           <DialogTitle>{mode === "add" ? "Add Fuel Efficiency Rating" : "Edit Fuel Efficiency Rating"}</DialogTitle>
-          <DialogDescription className="text-white/70">
+          <DialogDescription>
             Define fuel efficiency ratings from A to E.
           </DialogDescription>
         </DialogHeader>
@@ -105,12 +105,12 @@ export default function FuelEfficiencyFormDialog({
                 }))
               }
             >
-              <SelectTrigger className="w-full bg-transparent text-white border-[#1f1f1f]">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select rating" />
               </SelectTrigger>
-              <SelectContent className="bg-black text-white border-[#1f1f1f]">
+              <SelectContent>
                 {RATINGS.map((rating) => (
-                  <SelectItem key={rating} value={rating} className="text-white">
+                  <SelectItem key={rating} value={rating}>
                     {rating}
                   </SelectItem>
                 ))}
@@ -125,12 +125,11 @@ export default function FuelEfficiencyFormDialog({
               value={values.description}
               onChange={(e) => setValues((prev) => ({ ...prev, description: e.target.value }))}
               placeholder="A - Best fuel efficiency"
-              className="bg-transparent text-white border-[#1f1f1f]"
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-[#1f1f1f] p-3">
-            <span className="text-sm text-white/80">Status: {values.status === "active" ? "Active" : "Inactive"}</span>
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <span className="text-sm text-muted-foreground">Status: {values.status === "active" ? "Active" : "Inactive"}</span>
             <Switch
               checked={values.status === "active"}
               onCheckedChange={(checked) =>
@@ -152,7 +151,7 @@ export default function FuelEfficiencyFormDialog({
             <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!values.rating || isDuplicate} className="bg-white text-black hover:bg-white/90">
+            <Button type="submit" disabled={!values.rating || isDuplicate}>
               {mode === "add" ? "Add Rating" : "Save Changes"}
             </Button>
           </DialogFooter>

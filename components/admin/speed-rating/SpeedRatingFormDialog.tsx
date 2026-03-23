@@ -84,10 +84,10 @@ export default function SpeedRatingFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-black text-white border-[#1f1f1f] p-6">
+      <DialogContent className="p-6">
         <DialogHeader>
           <DialogTitle>{mode === "add" ? "Add Speed Rating" : "Edit Speed Rating"}</DialogTitle>
-          <DialogDescription className="text-white/70">
+          <DialogDescription>
             Manage speed ratings such as H, V, W, and Y.
           </DialogDescription>
         </DialogHeader>
@@ -100,7 +100,6 @@ export default function SpeedRatingFormDialog({
               value={values.rating}
               onChange={(e) => setValues((prev) => ({ ...prev, rating: e.target.value }))}
               placeholder="e.g. H"
-              className="bg-transparent text-white border-[#1f1f1f]"
             />
           </div>
 
@@ -113,7 +112,6 @@ export default function SpeedRatingFormDialog({
               value={values.maxSpeed}
               onChange={(e) => setValues((prev) => ({ ...prev, maxSpeed: e.target.value }))}
               placeholder="e.g. 210"
-              className="bg-transparent text-white border-[#1f1f1f]"
             />
           </div>
 
@@ -124,12 +122,11 @@ export default function SpeedRatingFormDialog({
               value={values.description}
               onChange={(e) => setValues((prev) => ({ ...prev, description: e.target.value }))}
               placeholder="Suitable for high-performance vehicles"
-              className="bg-transparent text-white border-[#1f1f1f]"
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-[#1f1f1f] p-3">
-            <span className="text-sm text-white/80">Status: {values.status === "active" ? "Active" : "Inactive"}</span>
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <span className="text-sm text-muted-foreground">Status: {values.status === "active" ? "Active" : "Inactive"}</span>
             <Switch
               checked={values.status === "active"}
               onCheckedChange={(checked) =>
@@ -154,7 +151,6 @@ export default function SpeedRatingFormDialog({
             <Button
               type="submit"
               disabled={!normalizedRating || !values.maxSpeed.trim() || isDuplicate}
-              className="bg-white text-black hover:bg-white/90"
             >
               {mode === "add" ? "Add Rating" : "Save Changes"}
             </Button>
