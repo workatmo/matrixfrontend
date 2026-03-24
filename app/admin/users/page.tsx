@@ -34,6 +34,7 @@ const AVAILABLE_PERMISSIONS = [
   { id: "orders", label: "Orders" },
   { id: "tyres", label: "Tyres" },
   { id: "attributes", label: "Attributes" },
+  { id: "notifications", label: "Notifications" },
   { id: "settings", label: "Settings" },
   { id: "test_dvla", label: "Test DVLA" },
   { id: "api_settings", label: "API Settings" },

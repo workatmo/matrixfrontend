@@ -306,9 +306,13 @@ export default function BrandAttributesPage() {
 
     setBulkDeleting(true);
     try {
-      await bulkDeleteAdminBrands(selectedIds);
+      const result = await bulkDeleteAdminBrands(selectedIds);
       await load();
-      toast.success(`Deleted ${selectedIds.length} brand(s).`);
+      if (result.skipped > 0) {
+        toast.warning(`Deleted ${result.deleted} brand(s). Skipped ${result.skipped} in use by tyres.`);
+      } else {
+        toast.success(`Deleted ${result.deleted} brand(s).`);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to bulk delete brands.");
     } finally {

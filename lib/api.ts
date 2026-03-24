@@ -49,6 +49,46 @@ export interface AdminUsersListResult {
   };
 }
 
+export interface AdminNotification {
+  id: number;
+  title: string;
+  color: string;
+  link: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminNotificationPayload {
+  title: string;
+  color: string;
+  link?: string | null;
+}
+
+export async function listAdminNotifications(): Promise<AdminNotification[]> {
+  const data = await request<{ data: { notifications: AdminNotification[] } }>("/admin/notifications");
+  return data.data.notifications;
+}
+
+export async function createAdminNotification(payload: AdminNotificationPayload): Promise<AdminNotification> {
+  const data = await request<{ data: AdminNotification }>("/admin/notifications", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminNotification(id: number, payload: AdminNotificationPayload): Promise<AdminNotification> {
+  const data = await request<{ data: AdminNotification }>(`/admin/notifications/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminNotification(id: number): Promise<void> {
+  await request(`/admin/notifications/${id}`, { method: "DELETE" });
+}
+
 export async function listAdminUsers(
   page = 1,
   perPage = 50,
@@ -699,12 +739,18 @@ export async function deleteAdminBrand(id: number): Promise<void> {
   });
 }
 
-export async function bulkDeleteAdminBrands(ids: number[]): Promise<number> {
-  const data = await request<{ data: { deleted: number } }>("/admin/attributes/brand/bulk-delete", {
+export interface AdminBrandBulkDeleteResult {
+  deleted: number;
+  skipped: number;
+  blocked_ids: number[];
+}
+
+export async function bulkDeleteAdminBrands(ids: number[]): Promise<AdminBrandBulkDeleteResult> {
+  const data = await request<{ data: AdminBrandBulkDeleteResult }>("/admin/attributes/brand/bulk-delete", {
     method: "DELETE",
     body: JSON.stringify({ ids }),
   });
-  return data.data.deleted;
+  return data.data;
 }
 
 export async function downloadAdminBrandTemplate(): Promise<void> {
@@ -832,12 +878,18 @@ export async function bulkUpdateAdminSizes(
   return data.data.updated;
 }
 
-export async function bulkDeleteAdminSizes(ids: number[]): Promise<number> {
-  const data = await request<{ data: { deleted: number } }>("/admin/attributes/size/bulk-delete", {
+export interface AdminSizeBulkDeleteResult {
+  deleted: number;
+  skipped: number;
+  blocked_ids: number[];
+}
+
+export async function bulkDeleteAdminSizes(ids: number[]): Promise<AdminSizeBulkDeleteResult> {
+  const data = await request<{ data: AdminSizeBulkDeleteResult }>("/admin/attributes/size/bulk-delete", {
     method: "DELETE",
     body: JSON.stringify({ ids }),
   });
-  return data.data.deleted;
+  return data.data;
 }
 
 export async function downloadSizeTemplate(format: "xlsx" | "csv" = "xlsx"): Promise<void> {

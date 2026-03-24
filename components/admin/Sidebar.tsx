@@ -9,6 +9,7 @@ import {
   ShoppingCart,
   CircleDot,
   FileSearch,
+  Bell,
   Settings2,
   Settings,
   RefreshCw,
@@ -74,6 +75,11 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    label: "Notifications",
+    href: "/admin/notifications",
+    icon: Bell,
+  },
+  {
     label: "Test DVLA",
     href: "/admin/test-dvla",
     icon: FileSearch,
@@ -111,6 +117,7 @@ export default function Sidebar() {
       Orders: "orders",
       Tyres: "tyres",
       Attributes: "attributes",
+      Notifications: "notifications",
       Settings: "settings",
       "Test DVLA": "test_dvla",
       "API Settings": "api_settings",
