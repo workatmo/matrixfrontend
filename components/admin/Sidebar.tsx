@@ -10,6 +10,7 @@ import {
   CircleDot,
   FileSearch,
   Bell,
+  Image,
   Settings2,
   Settings,
   RefreshCw,
@@ -80,6 +81,11 @@ const navItems: NavItem[] = [
     icon: Bell,
   },
   {
+    label: "Banners",
+    href: "/admin/banners",
+    icon: Image,
+  },
+  {
     label: "Test DVLA",
     href: "/admin/test-dvla",
     icon: FileSearch,
@@ -118,6 +124,7 @@ export default function Sidebar() {
       Tyres: "tyres",
       Attributes: "attributes",
       Notifications: "notifications",
+      Banners: "banners",
       Settings: "settings",
       "Test DVLA": "test_dvla",
       "API Settings": "api_settings",
