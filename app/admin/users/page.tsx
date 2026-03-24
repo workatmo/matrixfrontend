@@ -1,16 +1,29 @@
 "use client";
 
 import AdminLayout from "@/components/admin/Layout";
-import { listAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser, type AdminUserListItem } from "@/lib/api";
-import { Search, Plus, Loader2, Edit, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import {
+  listAdminUsers,
+  createAdminUser,
+  updateAdminUser,
+  deleteAdminUser,
+  bulkUpdateAdminUsers,
+  bulkDeleteAdminUsers,
+  downloadAdminUsersTemplate,
+  exportAdminUsers,
+  importAdminUsers,
+  type AdminUserListItem,
+} from "@/lib/api";
+import { Search, Plus, Loader2, Edit, Trash2, Download, UploadCloud } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAdminAuth } from "@/components/admin/AuthContext";
+import { useSettings } from "@/components/admin/SettingsProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -34,6 +47,7 @@ const AVAILABLE_PERMISSIONS = [
   { id: "orders", label: "Orders" },
   { id: "tyres", label: "Tyres" },
   { id: "attributes", label: "Attributes" },
+  { id: "notifications", label: "Notifications" },
   { id: "settings", label: "Settings" },
   { id: "test_dvla", label: "Test DVLA" },
   { id: "api_settings", label: "API Settings" },
@@ -58,8 +72,61 @@ function formatJoined(iso: string | null): string {
   }
 }
 
+const COUNTRY_DIAL_CODE_MAP: Record<string, string> = {
+  "United Kingdom": "+44",
+  "United States": "+1",
+  Canada: "+1",
+  India: "+91",
+  Australia: "+61",
+  Germany: "+49",
+  France: "+33",
+  Spain: "+34",
+  Italy: "+39",
+  Ireland: "+353",
+  Netherlands: "+31",
+  Belgium: "+32",
+  Switzerland: "+41",
+  Austria: "+43",
+  Sweden: "+46",
+  Norway: "+47",
+  Denmark: "+45",
+  Finland: "+358",
+  Portugal: "+351",
+  Poland: "+48",
+  Turkey: "+90",
+  "United Arab Emirates": "+971",
+  "Saudi Arabia": "+966",
+  Qatar: "+974",
+  Kuwait: "+965",
+  Oman: "+968",
+  Bahrain: "+973",
+  Singapore: "+65",
+  Malaysia: "+60",
+  Thailand: "+66",
+  Indonesia: "+62",
+  Philippines: "+63",
+  Japan: "+81",
+  "South Korea": "+82",
+  China: "+86",
+  Pakistan: "+92",
+  Bangladesh: "+880",
+  Nepal: "+977",
+  "South Africa": "+27",
+  Nigeria: "+234",
+  Kenya: "+254",
+  Egypt: "+20",
+  Brazil: "+55",
+  Argentina: "+54",
+  Mexico: "+52",
+  Chile: "+56",
+  Colombia: "+57",
+  Peru: "+51",
+  "New Zealand": "+64",
+};
+
 export default function UsersPage() {
   const { user: authUser } = useAdminAuth();
+  const { settings } = useSettings();
   const [users, setUsers] = useState<AdminUserListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,9 +139,18 @@ export default function UsersPage() {
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [formMode, setFormMode] = useState<"admin" | "customer">("customer");
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
+    vehicle_registration_number: "",
+    address: "",
     password: "",
     role: "admin",
     permissions: [] as string[],
@@ -106,8 +182,11 @@ export default function UsersPage() {
       const payload = {
         name: formData.name,
         email: formData.email,
-        role: formData.role,
-        permissions: formData.role === "admin" ? formData.permissions : undefined,
+        phone: formMode === "customer" ? formData.phone : undefined,
+        vehicle_registration_number: formMode === "customer" ? formData.vehicle_registration_number : undefined,
+        address: formMode === "customer" ? formData.address : undefined,
+        role: formMode === "customer" ? "user" : formData.role,
+        permissions: formMode === "admin" && formData.role === "admin" ? formData.permissions : undefined,
       };
       
       if (formData.password) {
@@ -123,8 +202,18 @@ export default function UsersPage() {
       }
       
       setCreateModalOpen(false);
-      setFormData({ name: "", email: "", password: "", role: "admin", permissions: [] });
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        vehicle_registration_number: "",
+        address: "",
+        password: "",
+        role: "admin",
+        permissions: [],
+      });
       setEditingUserId(null);
+      setFormMode(activeTab === "customers" ? "customer" : "admin");
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : "Failed to save user.");
     } finally {
@@ -136,10 +225,14 @@ export default function UsersPage() {
     setFormData({
       name: user.name,
       email: user.email,
+      phone: user.phone ?? "",
+      vehicle_registration_number: user.vehicle_registration_number ?? "",
+      address: user.address ?? "",
       password: "", // blank to not update password unless typed
       role: user.role?.name || "admin",
       permissions: user.permissions || [],
     });
+    setFormMode(user.role?.name === "user" ? "customer" : "admin");
     setEditingUserId(user.id);
     setCreateModalOpen(true);
   };
@@ -194,8 +287,96 @@ export default function UsersPage() {
           (u.role?.name ?? "").toLowerCase().includes(q),
       )
     : filteredUsers;
+  const customerRows = filtered.filter((u) => u.role?.name === "user" || !u.role);
 
   const isSuperAdmin = authUser?.role?.name === "super_admin";
+  const isCustomerForm = formMode === "customer";
+  const selectedCountry = settings?.country?.trim() || "";
+  const dialCode = selectedCountry ? COUNTRY_DIAL_CODE_MAP[selectedCountry] : undefined;
+  const phonePlaceholder = dialCode
+    ? `${dialCode} 7000 000000`
+    : selectedCountry
+      ? `Enter ${selectedCountry} phone number`
+      : "Enter phone number";
+
+  const toggleSelectAllCustomers = (checked: boolean) => {
+    if (!checked) {
+      setSelectedIds([]);
+      return;
+    }
+    setSelectedIds(customerRows.map((u) => u.id));
+  };
+
+  const handleBulkActiveUpdate = async (isActive: boolean) => {
+    if (selectedIds.length === 0) return;
+    setBulkBusy(true);
+    setError(null);
+    try {
+      const updatedCount = await bulkUpdateAdminUsers(selectedIds, isActive);
+      setError(`Updated ${updatedCount} customer(s).`);
+      await load();
+      setSelectedIds([]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed bulk update.");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Delete ${selectedIds.length} selected customer(s)?`)) return;
+    setBulkBusy(true);
+    setError(null);
+    try {
+      const result = await bulkDeleteAdminUsers(selectedIds);
+      setError(`Deleted ${result.deleted} customer(s). Skipped ${result.skipped}.`);
+      await load();
+      setSelectedIds([]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed bulk delete.");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      await downloadAdminUsersTemplate("xlsx");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to download template.");
+    }
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    setError(null);
+    try {
+      await exportAdminUsers("xlsx");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to export customers.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setImporting(true);
+    setError(null);
+    try {
+      const result = await importAdminUsers(file);
+      setError(`Import complete. Created: ${result.created}, Updated: ${result.updated}, Skipped: ${result.skipped}.`);
+      await load();
+      setSelectedIds([]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to import customers.");
+    } finally {
+      setImporting(false);
+    }
+  };
 
   return (
     <AdminLayout title="Customers">
@@ -207,10 +388,40 @@ export default function UsersPage() {
               Admin API users from the database ({users.length} total)
             </p>
           </div>
+          {activeTab === "customers" && (
+            <Button onClick={() => {
+                setEditingUserId(null);
+                setFormMode("customer");
+                setFormData({
+                  name: "",
+                  email: "",
+                  phone: "",
+                  vehicle_registration_number: "",
+                  address: "",
+                  password: "",
+                  role: "user",
+                  permissions: [],
+                });
+                setCreateModalOpen(true);
+            }} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Add Customer
+            </Button>
+          )}
           {isSuperAdmin && activeTab === "admins" && (
             <Button onClick={() => {
                 setEditingUserId(null);
-                setFormData({ name: "", email: "", password: "", role: "admin", permissions: [] });
+                setFormMode("admin");
+                setFormData({
+                  name: "",
+                  email: "",
+                  phone: "",
+                  vehicle_registration_number: "",
+                  address: "",
+                  password: "",
+                  role: "admin",
+                  permissions: [],
+                });
                 setCreateModalOpen(true);
             }} className="gap-2">
               <Plus className="w-4 h-4" />
@@ -247,7 +458,11 @@ export default function UsersPage() {
         <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>{editingUserId ? "Edit Admin" : "Add New Admin"}</DialogTitle>
+              <DialogTitle>
+                {editingUserId
+                  ? (isCustomerForm ? "Edit Customer" : "Edit Admin")
+                  : (isCustomerForm ? "Add New Customer" : "Add New Admin")}
+              </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreateSubmit} className="space-y-4 py-4">
               {createError && (
@@ -273,9 +488,45 @@ export default function UsersPage() {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="admin@example.com"
+                  placeholder={isCustomerForm ? "customer@example.com" : "admin@example.com"}
                 />
               </div>
+              {isCustomerForm && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      required
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder={phonePlaceholder}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="vehicle_registration_number">Vehicle Reg No</Label>
+                    <Input
+                      id="vehicle_registration_number"
+                      required
+                      value={formData.vehicle_registration_number}
+                      onChange={(e) =>
+                        setFormData({ ...formData, vehicle_registration_number: e.target.value.toUpperCase() })
+                      }
+                      placeholder="AB12 CDE"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address</Label>
+                    <Textarea
+                      id="address"
+                      required
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      placeholder="Customer address"
+                    />
+                  </div>
+                </>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <Input
@@ -288,23 +539,25 @@ export default function UsersPage() {
                   placeholder={editingUserId ? "Leave blank to keep current" : "Min. 8 characters"}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select
-                  value={formData.role}
-                  onValueChange={(val) => setFormData({ ...formData, role: val ?? "admin" })}
-                >
-                  <SelectTrigger id="role" className="w-full">
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="super_admin">Super Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {!isCustomerForm && (
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Select
+                    value={formData.role}
+                    onValueChange={(val) => setFormData({ ...formData, role: val ?? "admin" })}
+                  >
+                    <SelectTrigger id="role" className="w-full">
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="super_admin">Super Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
-              {formData.role === "admin" && (
+              {!isCustomerForm && formData.role === "admin" && (
                 <div className="space-y-3 pt-2">
                   <Label>Sidebar Permissions</Label>
                   <div className="space-y-2 border border-border rounded-lg p-3 bg-muted/20">
@@ -355,6 +608,28 @@ export default function UsersPage() {
               className="w-full bg-card border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-ring transition-colors"
             />
           </div>
+          {activeTab === "customers" && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button variant="outline" onClick={() => void handleDownloadTemplate()}>
+                Template XLSX
+              </Button>
+              <Button variant="outline" disabled={exporting} onClick={() => void handleExport()}>
+                {exporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                Export
+              </Button>
+              <input
+                ref={importRef}
+                type="file"
+                accept=".xlsx,.xls,.csv,.txt"
+                className="hidden"
+                onChange={(e) => void handleImportFile(e)}
+              />
+              <Button variant="secondary" disabled={importing} onClick={() => importRef.current?.click()}>
+                {importing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UploadCloud className="w-4 h-4 mr-2" />}
+                Import
+              </Button>
+            </div>
+          )}
         </div>
 
         {error && (
@@ -364,15 +639,37 @@ export default function UsersPage() {
         )}
 
         <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          {activeTab === "customers" && selectedIds.length > 0 && (
+            <div className="border-b border-border px-4 py-3 flex items-center gap-2 flex-wrap">
+              <span className="text-sm text-muted-foreground">{selectedIds.length} selected</span>
+              <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => void handleBulkActiveUpdate(true)}>
+                Bulk Activate
+              </Button>
+              <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => void handleBulkActiveUpdate(false)}>
+                Bulk Deactivate
+              </Button>
+              <Button size="sm" variant="destructive" disabled={bulkBusy} onClick={() => void handleBulkDelete()}>
+                Bulk Delete
+              </Button>
+            </div>
+          )}
           <Table>
             <TableHeader>
               <TableRow className="border-b border-border hover:bg-transparent">
-                {["User", "Role", "Created", "Status", "Actions"].map((h) => (
+                {(activeTab === "customers"
+                  ? ["", "Name", "Phone Number", "Email", "Vehicle Reg No", "Address", "Status", "Actions"]
+                  : ["User", "Role", "Created", "Status", "Actions"]
+                ).map((h) => (
                   <TableHead
                     key={h}
                     className={`h-12 px-5 text-xs font-medium text-muted-foreground uppercase tracking-wider ${h === 'Actions' ? 'text-right' : 'text-left'}`}
                   >
-                    {h}
+                    {h === "" ? (
+                      <Checkbox
+                        checked={customerRows.length > 0 && customerRows.every((u) => selectedIds.includes(u.id))}
+                        onCheckedChange={(v) => toggleSelectAllCustomers(!!v)}
+                      />
+                    ) : h}
                   </TableHead>
                 ))}
               </TableRow>
@@ -380,45 +677,73 @@ export default function UsersPage() {
             <TableBody className="divide-y divide-border">
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={activeTab === "customers" ? 8 : 5} className="h-24 text-center text-sm text-muted-foreground">
                     Loading customers…
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={activeTab === "customers" ? 8 : 5} className="h-24 text-center text-sm text-muted-foreground">
                     No customers match.
                   </TableCell>
                 </TableRow>
               ) : (
                 filtered.map((user) => (
                   <TableRow key={user.id} className="hover:bg-accent/30 transition-colors">
-                    <TableCell className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center text-xs font-bold text-foreground">
-                          {user.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="text-foreground text-sm font-medium">{user.name}</p>
-                          <p className="text-muted-foreground text-xs">{user.email}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-5 py-4 text-sm text-muted-foreground capitalize">
-                      {formatRole(user.role?.name)}
-                      {user.role?.name === "admin" && user.permissions?.length > 0 && (
-                         <div className="flex gap-1 flex-wrap mt-1">
-                           {user.permissions.map(p => (
-                             <span key={p} className="text-[10px] px-1.5 py-0.5 bg-muted rounded">
-                               {p}
-                             </span>
-                           ))}
-                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="px-5 py-4 text-sm text-muted-foreground">
-                      {formatJoined(user.created_at)}
-                    </TableCell>
+                    {activeTab === "customers" ? (
+                      <>
+                        <TableCell className="px-5 py-4">
+                          <Checkbox
+                            checked={selectedIds.includes(user.id)}
+                            onCheckedChange={(v) => {
+                              const checked = !!v;
+                              setSelectedIds((prev) => {
+                                if (checked) return prev.includes(user.id) ? prev : [...prev, user.id];
+                                return prev.filter((id) => id !== user.id);
+                              });
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className="px-5 py-4 text-sm font-medium text-foreground">{user.name}</TableCell>
+                        <TableCell className="px-5 py-4 text-sm text-muted-foreground">{user.phone || "—"}</TableCell>
+                        <TableCell className="px-5 py-4 text-sm text-muted-foreground">{user.email}</TableCell>
+                        <TableCell className="px-5 py-4 text-sm text-muted-foreground">
+                          {user.vehicle_registration_number || "—"}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 text-sm text-muted-foreground max-w-[240px] truncate" title={user.address || "—"}>
+                          {user.address || "—"}
+                        </TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center text-xs font-bold text-foreground">
+                              {user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-foreground text-sm font-medium">{user.name}</p>
+                              <p className="text-muted-foreground text-xs">{user.email}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-5 py-4 text-sm text-muted-foreground capitalize">
+                          {formatRole(user.role?.name)}
+                          {user.role?.name === "admin" && user.permissions?.length > 0 && (
+                            <div className="flex gap-1 flex-wrap mt-1">
+                              {user.permissions.map(p => (
+                                <span key={p} className="text-[10px] px-1.5 py-0.5 bg-muted rounded">
+                                  {p}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 text-sm text-muted-foreground">
+                          {formatJoined(user.created_at)}
+                        </TableCell>
+                      </>
+                    )}
                     <TableCell className="px-5 py-4">
                       <div className="flex items-center gap-2">
                         <Switch 

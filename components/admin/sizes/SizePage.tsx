@@ -156,9 +156,13 @@ export default function SizePage() {
 
     setBulkBusy(true);
     try {
-      await bulkDeleteAdminSizes(selectedIds);
+      const result = await bulkDeleteAdminSizes(selectedIds);
       await loadSizes();
-      toast.success(`Deleted ${selectedIds.length} size(s).`);
+      if (result.skipped > 0) {
+        toast.warning(`Deleted ${result.deleted} size(s). Skipped ${result.skipped} in use by tyres.`);
+      } else {
+        toast.success(`Deleted ${result.deleted} size(s).`);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to bulk delete sizes.");
     } finally {

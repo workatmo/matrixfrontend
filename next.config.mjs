@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
-// `/api-backend/*` is proxied by `app/api-backend/[[...path]]/route.ts` (reliable with Turbopack).
-// Set `LARAVEL_PROXY_TARGET` in `.env`. Use absolute `NEXT_PUBLIC_API_URL` to skip the proxy.
-const nextConfig = {};
+// Shared hosting serves static files only, so export the app as static assets.
+const nextConfig = {
+  output: "export",
+};
 
 export default nextConfig;

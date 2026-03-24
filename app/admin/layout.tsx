@@ -66,6 +66,8 @@ export default function AdminSectionLayout({
           "/admin/sizes": "attributes",
           "/admin/season": "attributes",
           "/admin/settings": "settings",
+          "/admin/notifications": "notifications",
+          "/admin/banners": "banners",
           "/admin/test-dvla": "test_dvla",
           "/admin/api-settings": "api_settings",
           "/admin/update": "update",

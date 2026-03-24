@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { Suspense } from "react";
 import AdminLayout from "@/components/admin/Layout";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -28,7 +29,9 @@ export default function TyreCreatePage() {
           </Link>
         </div>
 
-        <TyreForm />
+        <Suspense fallback={<p className="text-sm text-muted-foreground">Loading tyre form...</p>}>
+          <TyreForm />
+        </Suspense>
       </div>
     </AdminLayout>
   );

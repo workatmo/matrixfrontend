@@ -23,6 +23,9 @@ export interface AdminUserPayload {
   id: number;
   name: string;
   email: string;
+  phone: string | null;
+  vehicle_registration_number: string | null;
+  address: string | null;
   role: { id: number; name: string } | null;
   permissions: string[];
   is_active: boolean;
@@ -32,6 +35,9 @@ export interface AdminUserListItem {
   id: number;
   name: string;
   email: string;
+  phone: string | null;
+  vehicle_registration_number: string | null;
+  address: string | null;
   role: { id: number; name: string } | null;
   permissions: string[];
   is_active: boolean;
@@ -47,6 +53,124 @@ export interface AdminUsersListResult {
     per_page: number;
     total: number;
   };
+}
+
+export interface AdminNotification {
+  id: number;
+  title: string;
+  color: string;
+  link: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminNotificationPayload {
+  title: string;
+  color: string;
+  link?: string | null;
+}
+
+export async function listAdminNotifications(): Promise<AdminNotification[]> {
+  const data = await request<{ data: { notifications: AdminNotification[] } }>("/admin/notifications");
+  return data.data.notifications;
+}
+
+export async function createAdminNotification(payload: AdminNotificationPayload): Promise<AdminNotification> {
+  const data = await request<{ data: AdminNotification }>("/admin/notifications", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminNotification(id: number, payload: AdminNotificationPayload): Promise<AdminNotification> {
+  const data = await request<{ data: AdminNotification }>(`/admin/notifications/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminNotification(id: number): Promise<void> {
+  await request(`/admin/notifications/${id}`, { method: "DELETE" });
+}
+
+// ── Banners ─────────────────────────────────────────────────────────────────
+
+export interface AdminBannerItem {
+  id: number;
+  title: string;
+  image_url: string | null;
+  link: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminBannerPayload {
+  title: string;
+  image_url?: string | null;
+  link?: string | null;
+  is_active?: boolean;
+  sort_order?: number;
+}
+
+export async function listAdminBanners(): Promise<AdminBannerItem[]> {
+  const data = await request<{ data: { banners: AdminBannerItem[] } }>("/admin/banners");
+  return data.data.banners;
+}
+
+export async function createAdminBanner(payload: AdminBannerPayload): Promise<AdminBannerItem> {
+  const data = await request<{ data: AdminBannerItem }>("/admin/banners", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminBanner(id: number, payload: AdminBannerPayload): Promise<AdminBannerItem> {
+  const data = await request<{ data: AdminBannerItem }>(`/admin/banners/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminBanner(id: number): Promise<void> {
+  await request(`/admin/banners/${id}`, { method: "DELETE" });
+}
+
+export async function uploadAdminBannerImage(file: File): Promise<string> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)
+      : null;
+
+  const form = new FormData();
+  form.append("image", file);
+
+  const res = await fetch(`${BASE_URL}/admin/banners/upload-image`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form,
+  });
+
+  const text = await res.text();
+  const json = parseJsonRecord(text);
+
+  if (!res.ok) {
+    const fromApi = messageFromApiPayload(json);
+    throw new Error(fromApi ?? `Upload failed (HTTP ${res.status}).`);
+  }
+
+  const url = (json.data as Record<string, unknown>)?.url;
+  if (typeof url !== "string") throw new Error("Invalid upload response from server.");
+  return url;
 }
 
 export async function listAdminUsers(
@@ -66,6 +190,9 @@ export async function listAdminUsers(
 export interface AdminUserCreatePayload {
   name: string;
   email: string;
+  phone?: string | null;
+  vehicle_registration_number?: string | null;
+  address?: string | null;
   password?: string;
   role: string;
   permissions?: string[];
@@ -90,6 +217,66 @@ export async function updateAdminUser(id: number, payload: Partial<AdminUserCrea
 
 export async function deleteAdminUser(id: number): Promise<void> {
   await request(`/admin/users/${id}`, { method: "DELETE" });
+}
+
+export async function bulkUpdateAdminUsers(ids: number[], isActive: boolean): Promise<number> {
+  const data = await request<{ data: { updated: number } }>("/admin/users/bulk-update", {
+    method: "PATCH",
+    body: JSON.stringify({ ids, is_active: isActive }),
+  });
+  return data.data.updated;
+}
+
+export async function bulkDeleteAdminUsers(ids: number[]): Promise<{ deleted: number; skipped: number }> {
+  const data = await request<{ data: { deleted: number; skipped: number } }>("/admin/users/bulk-delete", {
+    method: "DELETE",
+    body: JSON.stringify({ ids }),
+  });
+  return data.data;
+}
+
+export async function downloadAdminUsersTemplate(format: "xlsx" | "csv" = "xlsx"): Promise<void> {
+  const ext = format === "xlsx" ? "xlsx" : "csv";
+  await downloadAdminFile(`/admin/users/template?format=${format}`, `customers-template.${ext}`);
+}
+
+export async function exportAdminUsers(format: "xlsx" | "csv" = "xlsx"): Promise<void> {
+  const ext = format === "xlsx" ? "xlsx" : "csv";
+  await downloadAdminFile(`/admin/users/export?format=${format}`, `customers-export.${ext}`);
+}
+
+export async function importAdminUsers(file: File): Promise<{ created: number; updated: number; skipped: number }> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)
+      : null;
+
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await fetch(`${BASE_URL}/admin/users/import`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form,
+  });
+
+  const text = await res.text();
+  const json = parseJsonRecord(text);
+  if (!res.ok) {
+    const fromApi = messageFromApiPayload(json);
+    throw new Error(fromApi ?? describeHttpFailure(res.status, text));
+  }
+
+  const data = json.data as Record<string, unknown>;
+  return {
+    created: typeof data.created === "number" ? data.created : 0,
+    updated: typeof data.updated === "number" ? data.updated : 0,
+    skipped: typeof data.skipped === "number" ? data.skipped : 0,
+  };
 }
 
 function parseJsonRecord(text: string): Record<string, unknown> {
@@ -699,12 +886,18 @@ export async function deleteAdminBrand(id: number): Promise<void> {
   });
 }
 
-export async function bulkDeleteAdminBrands(ids: number[]): Promise<number> {
-  const data = await request<{ data: { deleted: number } }>("/admin/attributes/brand/bulk-delete", {
+export interface AdminBrandBulkDeleteResult {
+  deleted: number;
+  skipped: number;
+  blocked_ids: number[];
+}
+
+export async function bulkDeleteAdminBrands(ids: number[]): Promise<AdminBrandBulkDeleteResult> {
+  const data = await request<{ data: AdminBrandBulkDeleteResult }>("/admin/attributes/brand/bulk-delete", {
     method: "DELETE",
     body: JSON.stringify({ ids }),
   });
-  return data.data.deleted;
+  return data.data;
 }
 
 export async function downloadAdminBrandTemplate(): Promise<void> {
@@ -832,12 +1025,18 @@ export async function bulkUpdateAdminSizes(
   return data.data.updated;
 }
 
-export async function bulkDeleteAdminSizes(ids: number[]): Promise<number> {
-  const data = await request<{ data: { deleted: number } }>("/admin/attributes/size/bulk-delete", {
+export interface AdminSizeBulkDeleteResult {
+  deleted: number;
+  skipped: number;
+  blocked_ids: number[];
+}
+
+export async function bulkDeleteAdminSizes(ids: number[]): Promise<AdminSizeBulkDeleteResult> {
+  const data = await request<{ data: AdminSizeBulkDeleteResult }>("/admin/attributes/size/bulk-delete", {
     method: "DELETE",
     body: JSON.stringify({ ids }),
   });
-  return data.data.deleted;
+  return data.data;
 }
 
 export async function downloadSizeTemplate(format: "xlsx" | "csv" = "xlsx"): Promise<void> {
