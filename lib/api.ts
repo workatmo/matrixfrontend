@@ -221,6 +221,55 @@ export async function deleteAdminCoupon(id: number): Promise<void> {
   await request(`/admin/coupons/${id}`, { method: "DELETE" });
 }
 
+// ── Delivery Charges ─────────────────────────────────────────────────────────
+
+export interface AdminDeliveryChargeItem {
+  id: number;
+  from_distance: number;
+  to_distance: number;
+  charge: number;
+  status: "active" | "inactive";
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminDeliveryChargePayload {
+  from_distance: number;
+  to_distance: number;
+  charge: number;
+  status: "active" | "inactive";
+}
+
+export async function listAdminDeliveryCharges(): Promise<AdminDeliveryChargeItem[]> {
+  const data = await request<{ data: { delivery_charges: AdminDeliveryChargeItem[] } }>("/admin/delivery-charges");
+  return data.data.delivery_charges;
+}
+
+export async function createAdminDeliveryCharge(
+  payload: AdminDeliveryChargePayload
+): Promise<AdminDeliveryChargeItem> {
+  const data = await request<{ data: AdminDeliveryChargeItem }>("/admin/delivery-charges", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminDeliveryCharge(
+  id: number,
+  payload: AdminDeliveryChargePayload
+): Promise<AdminDeliveryChargeItem> {
+  const data = await request<{ data: AdminDeliveryChargeItem }>(`/admin/delivery-charges/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminDeliveryCharge(id: number): Promise<void> {
+  await request(`/admin/delivery-charges/${id}`, { method: "DELETE" });
+}
+
 // ── Slots ───────────────────────────────────────────────────────────────────
 
 export interface AdminSlotItem {

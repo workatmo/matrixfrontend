@@ -20,6 +20,7 @@ import {
   Tags,
   Ticket,
   CalendarClock,
+  Truck,
 } from "lucide-react";
 import { useState, type ComponentType } from "react";
 import { cn } from "@/lib/utils";
@@ -74,6 +75,11 @@ const navItems: NavItem[] = [
     label: "Slots",
     href: "/admin/slots",
     icon: CalendarClock,
+  },
+  {
+    label: "Delivery Charges",
+    href: "/admin/delivery-charges",
+    icon: Truck,
   },
   {
     label: "Attributes",
@@ -136,6 +142,7 @@ export default function Sidebar() {
       Tyres: "tyres",
       Coupons: "coupons",
       Slots: "slots",
+      "Delivery Charges": "delivery_charges",
       Attributes: "attributes",
       Notifications: "notifications",
       Banners: "banners",
