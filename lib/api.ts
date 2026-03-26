@@ -1944,3 +1944,44 @@ export async function uploadAdminLogo(file: File): Promise<string> {
   }
   return url;
 }
+
+// ── Dashboard ────────────────────────────────────────────────────────────────
+
+export interface AdminDashboardRecentOrder {
+  id: number;
+  order_ref: string;
+  customer: string;
+  vehicle: string;
+  vehicle_registration: string | null;
+  status: AdminOrderStatus;
+  amount: string;
+  created_at: string | null;
+}
+
+export interface AdminDashboardOrdersPerDay {
+  date: string;
+  label: string; // "Mon", "Tue" etc.
+  count: number;
+}
+
+export interface AdminDashboardStats {
+  stats: {
+    total_users: number;
+    total_orders: number;
+    total_vehicles: number;
+    total_revenue: number;
+  };
+  order_stats: {
+    pending: number;
+    processing: number;
+    completed: number;
+    cancelled: number;
+  };
+  orders_per_day: AdminDashboardOrdersPerDay[];
+  recent_orders: AdminDashboardRecentOrder[];
+}
+
+export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
+  const data = await request<{ data: AdminDashboardStats }>("/admin/dashboard");
+  return data.data;
+}
