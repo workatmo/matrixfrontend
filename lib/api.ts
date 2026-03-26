@@ -221,6 +221,81 @@ export async function deleteAdminCoupon(id: number): Promise<void> {
   await request(`/admin/coupons/${id}`, { method: "DELETE" });
 }
 
+// ── Slots ───────────────────────────────────────────────────────────────────
+
+export interface AdminSlotItem {
+  id: number;
+  day: string;
+  start_time: string;
+  end_time: string;
+  max_bookings: number;
+  status: "active" | "inactive";
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminSlotPayload {
+  day: string;
+  start_time: string;
+  end_time: string;
+  max_bookings?: number;
+  status?: "active" | "inactive";
+}
+
+export interface AdminSlotBulkGeneratePayload {
+  day: string;
+  start_time: string;
+  end_time: string;
+  duration: number;
+}
+
+export async function listAdminSlots(): Promise<AdminSlotItem[]> {
+  const data = await request<{ data: { slots: AdminSlotItem[] } }>("/admin/slots");
+  return data.data.slots;
+}
+
+export async function createAdminSlot(payload: AdminSlotPayload): Promise<AdminSlotItem> {
+  const data = await request<{ data: AdminSlotItem }>("/admin/slots", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function bulkGenerateAdminSlots(
+  payload: AdminSlotBulkGeneratePayload
+): Promise<{ slots: AdminSlotItem[]; created: number; skipped: number }> {
+  const data = await request<{
+    data: { slots: AdminSlotItem[]; created: number; skipped: number };
+  }>("/admin/slots/bulk-generate", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminSlot(
+  id: number,
+  payload: AdminSlotPayload
+): Promise<AdminSlotItem> {
+  const data = await request<{ data: AdminSlotItem }>(`/admin/slots/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminSlot(id: number): Promise<void> {
+  await request(`/admin/slots/${id}`, { method: "DELETE" });
+}
+
+export async function toggleAdminSlotStatus(id: number): Promise<AdminSlotItem> {
+  const data = await request<{ data: AdminSlotItem }>(`/admin/slots/${id}/toggle-status`, {
+    method: "PATCH",
+  });
+  return data.data;
+}
+
 export async function listAdminUsers(
   page = 1,
   perPage = 50,
