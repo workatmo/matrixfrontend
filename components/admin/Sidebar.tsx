@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Zap,
   Tags,
+  Ticket,
 } from "lucide-react";
 import { useState, type ComponentType } from "react";
 import { cn } from "@/lib/utils";
@@ -62,6 +63,11 @@ const navItems: NavItem[] = [
     label: "Tyres",
     href: "/admin/tyres",
     icon: CircleDot,
+  },
+  {
+    label: "Coupons",
+    href: "/admin/coupons",
+    icon: Ticket,
   },
   {
     label: "Attributes",
@@ -122,6 +128,7 @@ export default function Sidebar() {
       Vehicles: "vehicles",
       Orders: "orders",
       Tyres: "tyres",
+      Coupons: "coupons",
       Attributes: "attributes",
       Notifications: "notifications",
       Banners: "banners",

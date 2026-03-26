@@ -173,6 +173,54 @@ export async function uploadAdminBannerImage(file: File): Promise<string> {
   return url;
 }
 
+// ── Coupons ─────────────────────────────────────────────────────────────────
+
+export interface AdminCouponItem {
+  id: number;
+  title: string;
+  description: string | null;
+  code: string;
+  discount_type: "amount" | "percentage";
+  discount_value: number;
+  status: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminCouponPayload {
+  title: string;
+  description?: string | null;
+  code: string;
+  discount_type: "amount" | "percentage";
+  discount_value: number;
+  status: boolean;
+}
+
+export async function listAdminCoupons(): Promise<AdminCouponItem[]> {
+  const data = await request<{ data: { coupons: AdminCouponItem[] } }>("/admin/coupons");
+  return data.data.coupons;
+}
+
+export async function createAdminCoupon(payload: AdminCouponPayload): Promise<AdminCouponItem> {
+  const data = await request<{ data: AdminCouponItem }>("/admin/coupons", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminCoupon(id: number, payload: AdminCouponPayload): Promise<AdminCouponItem> {
+  const data = await request<{ data: AdminCouponItem }>(`/admin/coupons/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminCoupon(id: number): Promise<void> {
+  await request(`/admin/coupons/${id}`, { method: "DELETE" });
+}
+
 export async function listAdminUsers(
   page = 1,
   perPage = 50,
