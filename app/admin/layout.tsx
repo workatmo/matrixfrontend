@@ -59,6 +59,7 @@ export default function AdminSectionLayout({
           "/admin/vehicles": "vehicles",
           "/admin/orders": "orders",
           "/admin/tyres": "tyres",
+          "/admin/slots": "slots",
           "/admin/attributes": "attributes",
           "/admin/fuel-efficiency": "attributes",
           "/admin/speed-rating": "attributes",

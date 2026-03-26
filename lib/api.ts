@@ -173,6 +173,224 @@ export async function uploadAdminBannerImage(file: File): Promise<string> {
   return url;
 }
 
+// ── Coupons ─────────────────────────────────────────────────────────────────
+
+export interface AdminCouponItem {
+  id: number;
+  title: string;
+  description: string | null;
+  code: string;
+  discount_type: "amount" | "percentage";
+  discount_value: number;
+  status: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminCouponPayload {
+  title: string;
+  description?: string | null;
+  code: string;
+  discount_type: "amount" | "percentage";
+  discount_value: number;
+  status: boolean;
+}
+
+export async function listAdminCoupons(): Promise<AdminCouponItem[]> {
+  const data = await request<{ data: { coupons: AdminCouponItem[] } }>("/admin/coupons");
+  return data.data.coupons;
+}
+
+export async function createAdminCoupon(payload: AdminCouponPayload): Promise<AdminCouponItem> {
+  const data = await request<{ data: AdminCouponItem }>("/admin/coupons", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminCoupon(id: number, payload: AdminCouponPayload): Promise<AdminCouponItem> {
+  const data = await request<{ data: AdminCouponItem }>(`/admin/coupons/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminCoupon(id: number): Promise<void> {
+  await request(`/admin/coupons/${id}`, { method: "DELETE" });
+}
+
+// ── Slots ───────────────────────────────────────────────────────────────────
+
+export interface AdminSlotItem {
+  id: number;
+  day: string;
+  start_time: string;
+  end_time: string;
+  max_bookings: number;
+  status: "active" | "inactive";
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminSlotPayload {
+  day: string;
+  start_time: string;
+  end_time: string;
+  max_bookings?: number;
+  status?: "active" | "inactive";
+}
+
+export interface AdminSlotBulkGeneratePayload {
+  day: string;
+  start_time: string;
+  end_time: string;
+  duration: number;
+}
+
+export async function listAdminSlots(): Promise<AdminSlotItem[]> {
+  const data = await request<{ data: { slots: AdminSlotItem[] } }>("/admin/slots");
+  return data.data.slots;
+}
+
+export async function createAdminSlot(payload: AdminSlotPayload): Promise<AdminSlotItem> {
+  const data = await request<{ data: AdminSlotItem }>("/admin/slots", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function bulkGenerateAdminSlots(
+  payload: AdminSlotBulkGeneratePayload
+): Promise<{ slots: AdminSlotItem[]; created: number; skipped: number }> {
+  const data = await request<{
+    data: { slots: AdminSlotItem[]; created: number; skipped: number };
+  }>("/admin/slots/bulk-generate", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminSlot(
+  id: number,
+  payload: AdminSlotPayload
+): Promise<AdminSlotItem> {
+  const data = await request<{ data: AdminSlotItem }>(`/admin/slots/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminSlot(id: number): Promise<void> {
+  await request(`/admin/slots/${id}`, { method: "DELETE" });
+}
+
+export async function toggleAdminSlotStatus(id: number): Promise<AdminSlotItem> {
+  const data = await request<{ data: AdminSlotItem }>(`/admin/slots/${id}/toggle-status`, {
+    method: "PATCH",
+  });
+  return data.data;
+}
+
+// ── Orders ───────────────────────────────────────────────────────────────────
+
+export type AdminOrderStatus = "pending" | "processing" | "completed" | "cancelled";
+
+export interface AdminOrderItem {
+  id: number;
+  user_id: number | null;
+  slot_id: number | null;
+  user: { id: number; name: string; email: string; phone: string | null } | null;
+  vehicle_registration: string | null;
+  vehicle_make: string | null;
+  vehicle_model: string | null;
+  service_type: string;
+  amount: string; // decimal from Laravel comes as string
+  status: AdminOrderStatus;
+  notes: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminOrderStats {
+  total: number;
+  pending: number;
+  processing: number;
+  completed: number;
+  cancelled: number;
+}
+
+export interface AdminOrdersListResult {
+  orders: AdminOrderItem[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+  stats: AdminOrderStats;
+}
+
+export interface AdminOrderPayload {
+  user_id?: number | null;
+  slot_id?: number | null;
+  vehicle_registration?: string | null;
+  vehicle_make?: string | null;
+  vehicle_model?: string | null;
+  service_type: string;
+  amount: number;
+  status: AdminOrderStatus;
+  notes?: string | null;
+}
+
+export async function listAdminOrders(params?: {
+  search?: string;
+  status?: AdminOrderStatus | "";
+  page?: number;
+  per_page?: number;
+}): Promise<AdminOrdersListResult> {
+  const qs = new URLSearchParams();
+  if (params?.search) qs.set("search", params.search);
+  if (params?.status) qs.set("status", params.status);
+  if (params?.page) qs.set("page", String(params.page));
+  if (params?.per_page) qs.set("per_page", String(params.per_page));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const data = await request<{ data: AdminOrdersListResult }>(`/admin/orders${suffix}`);
+  return data.data;
+}
+
+export async function createAdminOrder(payload: AdminOrderPayload): Promise<AdminOrderItem> {
+  const data = await request<{ data: AdminOrderItem }>("/admin/orders", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminOrder(id: number, payload: Partial<AdminOrderPayload>): Promise<AdminOrderItem> {
+  const data = await request<{ data: AdminOrderItem }>(`/admin/orders/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminOrderStatus(id: number, status: AdminOrderStatus): Promise<AdminOrderItem> {
+  const data = await request<{ data: AdminOrderItem }>(`/admin/orders/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+  return data.data;
+}
+
+export async function deleteAdminOrder(id: number): Promise<void> {
+  await request(`/admin/orders/${id}`, { method: "DELETE" });
+}
+
 export async function listAdminUsers(
   page = 1,
   perPage = 50,
@@ -580,6 +798,91 @@ export async function updateApiKey(id: number, value: string): Promise<ApiSettin
     }
   );
   return data.data;
+}
+
+// ── Vehicles ─────────────────────────────────────────────────────────────────
+
+export type AdminVehicleStatus = "active" | "inactive" | "pending";
+
+export interface AdminVehicleItem {
+  id: number;
+  user_id: number | null;
+  user: { id: number; name: string; email: string; phone: string | null } | null;
+  registration: string;
+  make: string | null;
+  model: string | null;
+  year: number | null;
+  status: AdminVehicleStatus;
+  notes: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminVehicleStats {
+  total: number;
+  active: number;
+  inactive: number;
+  pending: number;
+}
+
+export interface AdminVehiclesListResult {
+  vehicles: AdminVehicleItem[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+  stats: AdminVehicleStats;
+}
+
+export interface AdminVehiclePayload {
+  user_id?: number | null;
+  registration: string;
+  make?: string | null;
+  model?: string | null;
+  year?: number | null;
+  status?: AdminVehicleStatus;
+  notes?: string | null;
+}
+
+export async function listAdminVehicles(params?: {
+  search?: string;
+  status?: AdminVehicleStatus | "";
+  page?: number;
+  per_page?: number;
+}): Promise<AdminVehiclesListResult> {
+  const qs = new URLSearchParams();
+  if (params?.search) qs.set("search", params.search);
+  if (params?.status) qs.set("status", params.status);
+  if (params?.page) qs.set("page", String(params.page));
+  if (params?.per_page) qs.set("per_page", String(params.per_page));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const data = await request<{ data: AdminVehiclesListResult }>(`/admin/vehicles${suffix}`);
+  return data.data;
+}
+
+export async function createAdminVehicle(payload: AdminVehiclePayload): Promise<AdminVehicleItem> {
+  const data = await request<{ data: AdminVehicleItem }>("/admin/vehicles", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminVehicle(
+  id: number,
+  payload: Partial<AdminVehiclePayload>
+): Promise<AdminVehicleItem> {
+  const data = await request<{ data: AdminVehicleItem }>(`/admin/vehicles/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminVehicle(id: number): Promise<void> {
+  await request(`/admin/vehicles/${id}`, { method: "DELETE" });
 }
 
 // ── DVLA test (Super Admin) ─────────────────────────────────────────────────
@@ -1640,4 +1943,45 @@ export async function uploadAdminLogo(file: File): Promise<string> {
     throw new Error("Logo upload failed: unexpected response.");
   }
   return url;
+}
+
+// ── Dashboard ────────────────────────────────────────────────────────────────
+
+export interface AdminDashboardRecentOrder {
+  id: number;
+  order_ref: string;
+  customer: string;
+  vehicle: string;
+  vehicle_registration: string | null;
+  status: AdminOrderStatus;
+  amount: string;
+  created_at: string | null;
+}
+
+export interface AdminDashboardOrdersPerDay {
+  date: string;
+  label: string; // "Mon", "Tue" etc.
+  count: number;
+}
+
+export interface AdminDashboardStats {
+  stats: {
+    total_users: number;
+    total_orders: number;
+    total_vehicles: number;
+    total_revenue: number;
+  };
+  order_stats: {
+    pending: number;
+    processing: number;
+    completed: number;
+    cancelled: number;
+  };
+  orders_per_day: AdminDashboardOrdersPerDay[];
+  recent_orders: AdminDashboardRecentOrder[];
+}
+
+export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
+  const data = await request<{ data: AdminDashboardStats }>("/admin/dashboard");
+  return data.data;
 }
