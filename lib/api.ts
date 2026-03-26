@@ -296,6 +296,101 @@ export async function toggleAdminSlotStatus(id: number): Promise<AdminSlotItem> 
   return data.data;
 }
 
+// ── Orders ───────────────────────────────────────────────────────────────────
+
+export type AdminOrderStatus = "pending" | "processing" | "completed" | "cancelled";
+
+export interface AdminOrderItem {
+  id: number;
+  user_id: number | null;
+  slot_id: number | null;
+  user: { id: number; name: string; email: string; phone: string | null } | null;
+  vehicle_registration: string | null;
+  vehicle_make: string | null;
+  vehicle_model: string | null;
+  service_type: string;
+  amount: string; // decimal from Laravel comes as string
+  status: AdminOrderStatus;
+  notes: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminOrderStats {
+  total: number;
+  pending: number;
+  processing: number;
+  completed: number;
+  cancelled: number;
+}
+
+export interface AdminOrdersListResult {
+  orders: AdminOrderItem[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+  stats: AdminOrderStats;
+}
+
+export interface AdminOrderPayload {
+  user_id?: number | null;
+  slot_id?: number | null;
+  vehicle_registration?: string | null;
+  vehicle_make?: string | null;
+  vehicle_model?: string | null;
+  service_type: string;
+  amount: number;
+  status: AdminOrderStatus;
+  notes?: string | null;
+}
+
+export async function listAdminOrders(params?: {
+  search?: string;
+  status?: AdminOrderStatus | "";
+  page?: number;
+  per_page?: number;
+}): Promise<AdminOrdersListResult> {
+  const qs = new URLSearchParams();
+  if (params?.search) qs.set("search", params.search);
+  if (params?.status) qs.set("status", params.status);
+  if (params?.page) qs.set("page", String(params.page));
+  if (params?.per_page) qs.set("per_page", String(params.per_page));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const data = await request<{ data: AdminOrdersListResult }>(`/admin/orders${suffix}`);
+  return data.data;
+}
+
+export async function createAdminOrder(payload: AdminOrderPayload): Promise<AdminOrderItem> {
+  const data = await request<{ data: AdminOrderItem }>("/admin/orders", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminOrder(id: number, payload: Partial<AdminOrderPayload>): Promise<AdminOrderItem> {
+  const data = await request<{ data: AdminOrderItem }>(`/admin/orders/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminOrderStatus(id: number, status: AdminOrderStatus): Promise<AdminOrderItem> {
+  const data = await request<{ data: AdminOrderItem }>(`/admin/orders/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+  return data.data;
+}
+
+export async function deleteAdminOrder(id: number): Promise<void> {
+  await request(`/admin/orders/${id}`, { method: "DELETE" });
+}
+
 export async function listAdminUsers(
   page = 1,
   perPage = 50,
@@ -703,6 +798,91 @@ export async function updateApiKey(id: number, value: string): Promise<ApiSettin
     }
   );
   return data.data;
+}
+
+// ── Vehicles ─────────────────────────────────────────────────────────────────
+
+export type AdminVehicleStatus = "active" | "inactive" | "pending";
+
+export interface AdminVehicleItem {
+  id: number;
+  user_id: number | null;
+  user: { id: number; name: string; email: string; phone: string | null } | null;
+  registration: string;
+  make: string | null;
+  model: string | null;
+  year: number | null;
+  status: AdminVehicleStatus;
+  notes: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminVehicleStats {
+  total: number;
+  active: number;
+  inactive: number;
+  pending: number;
+}
+
+export interface AdminVehiclesListResult {
+  vehicles: AdminVehicleItem[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+  stats: AdminVehicleStats;
+}
+
+export interface AdminVehiclePayload {
+  user_id?: number | null;
+  registration: string;
+  make?: string | null;
+  model?: string | null;
+  year?: number | null;
+  status?: AdminVehicleStatus;
+  notes?: string | null;
+}
+
+export async function listAdminVehicles(params?: {
+  search?: string;
+  status?: AdminVehicleStatus | "";
+  page?: number;
+  per_page?: number;
+}): Promise<AdminVehiclesListResult> {
+  const qs = new URLSearchParams();
+  if (params?.search) qs.set("search", params.search);
+  if (params?.status) qs.set("status", params.status);
+  if (params?.page) qs.set("page", String(params.page));
+  if (params?.per_page) qs.set("per_page", String(params.per_page));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const data = await request<{ data: AdminVehiclesListResult }>(`/admin/vehicles${suffix}`);
+  return data.data;
+}
+
+export async function createAdminVehicle(payload: AdminVehiclePayload): Promise<AdminVehicleItem> {
+  const data = await request<{ data: AdminVehicleItem }>("/admin/vehicles", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminVehicle(
+  id: number,
+  payload: Partial<AdminVehiclePayload>
+): Promise<AdminVehicleItem> {
+  const data = await request<{ data: AdminVehicleItem }>(`/admin/vehicles/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminVehicle(id: number): Promise<void> {
+  await request(`/admin/vehicles/${id}`, { method: "DELETE" });
 }
 
 // ── DVLA test (Super Admin) ─────────────────────────────────────────────────
