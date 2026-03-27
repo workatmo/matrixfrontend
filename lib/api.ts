@@ -805,6 +805,68 @@ export async function checkAdminSessionWithApi(): Promise<AdminUserPayload | nul
   }
 }
 
+export interface PublicTyreItem {
+  id: number;
+  brand_id: number;
+  model: string;
+  size_id: number;
+  season_id: number;
+  tyre_type_id: number;
+  fuel_efficiency_id: number;
+  speed_rating_id: number;
+  price: string;
+  stock: number;
+  description: string | null;
+  status: boolean;
+  image_url: string | null;
+  brand?: { id: number; name: string; icon_url: string | null };
+  size?: { id: number; name: string };
+  season?: { id: number; name: string };
+  tyreType?: { id: number; name: string };
+  fuelEfficiency?: { id: number; name: string };
+  speedRating?: { id: number; name: string };
+}
+
+export interface PublicTyreListResult {
+  current_page: number;
+  data: PublicTyreItem[];
+  first_page_url: string;
+  from: number;
+  last_page: number;
+  last_page_url: string;
+  next_page_url: string | null;
+  path: string;
+  per_page: number;
+  prev_page_url: string | null;
+  to: number;
+  total: number;
+}
+
+export async function getPublicTyres(page = 1, filters?: { size?: string; brand?: string }): Promise<PublicTyreListResult> {
+  const qs = new URLSearchParams();
+  qs.set("page", String(page));
+  if (filters?.size) qs.set("size", filters.size);
+  if (filters?.brand) qs.set("brand", filters.brand);
+
+  const url = `${BASE_URL}/public/tyres?${qs.toString()}`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+    },
+    // Adding tag for standard Next.js caching or revalidation if we decide to use it
+    next: { revalidate: 60 }
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(describeHttpFailure(res.status, text));
+  }
+
+  const json = await res.json();
+  return json.data as PublicTyreListResult;
+}
+
 export interface SystemUpdateStatus {
   repository_exists: boolean;
   pending_migrations: string[];
@@ -1066,9 +1128,12 @@ export async function updateAdminTyre(id: number, payload: AdminCreateTyrePayloa
   if (payload.description !== undefined && payload.description !== null) form.append("description", payload.description);
   if (payload.status !== undefined) form.append("status", typeof payload.status === "boolean" ? (payload.status ? "1" : "0") : payload.status);
   if (payload.image) form.append("image", payload.image);
+  
+  // Laravel cannot parse multipart/form-data on native PUT requests
+  form.append("_method", "PUT");
 
   const res = await fetch(`${BASE_URL}/admin/tyres/${id}`, {
-    method: "PUT",
+    method: "POST", // Sent as POST but intercepted by Laravel as PUT
     credentials: "include",
     headers: {
       Accept: "application/json",

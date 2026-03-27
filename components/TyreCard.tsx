@@ -45,10 +45,17 @@ export function TyreCard({ tyre, vehicle }: TyreCardProps) {
   return (
     <Card className="flex flex-col h-full bg-white border-neutral-200 transition-all hover:shadow-lg hover:-translate-y-1 group">
       <CardHeader className="bg-neutral-50 rounded-t-lg border-b border-neutral-100 p-6 flex flex-col items-center justify-center min-h-[160px] relative overflow-hidden">
-        {/* Abstract tyre icon / graphic since we don't have actual images */}
-        <div className="w-32 h-32 rounded-full border-8 border-neutral-800 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-           <div className="w-16 h-16 rounded-full border-4 border-neutral-600 bg-neutral-200"></div>
-        </div>
+        {tyre.image && tyre.image !== "default" ? (
+          <div className="w-32 h-32 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={tyre.image} alt={`${tyre.brand} ${tyre.model}`} className="w-full h-full object-contain drop-shadow-md" />
+          </div>
+        ) : (
+          <div className="w-32 h-32 rounded-full border-8 border-neutral-800 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+             {/* Abstract tyre icon / graphic since we don't have actual images */}
+             <div className="w-16 h-16 rounded-full border-4 border-neutral-600 bg-neutral-200"></div>
+          </div>
+        )}
         <div className="absolute top-4 right-4">
           <span className={`text-xs font-semibold px-2 py-1 flex rounded-full ${isSummer ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}`}>
             {tyre.season}

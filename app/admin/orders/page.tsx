@@ -313,7 +313,7 @@ function OrdersContent() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    {["Order ID", "Customer", "Vehicle", "Service", "Tyres", "Slot", "Date", "Amount", "Status", "Actions"].map((h) => (
+                    {["Order ID", "Customer", "Vehicle", "Tyres", "Qty", "Slot", "Date", "Amount", "Status", "Actions"].map((h) => (
                       <th key={h} className={h === "Actions" ? "px-5 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider" : "px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"}>
                         {h}
                       </th>
@@ -345,19 +345,18 @@ function OrdersContent() {
                         <td className="px-5 py-4 text-sm text-muted-foreground font-mono">#{String(order.id).padStart(3, "0")}</td>
                         <td className="px-5 py-4">
                           <p className="text-sm text-foreground">{order.user?.name ?? "—"}</p>
-                          {order.user?.email && (
-                            <p className="text-xs text-muted-foreground/60">{order.user.email}</p>
+                          {order.user?.phone && (
+                            <p className="text-xs text-muted-foreground/60">{order.user.phone}</p>
                           )}
                         </td>
                         <td className="px-5 py-4 text-sm text-muted-foreground">{vehicleLabel(order)}</td>
-                        <td className="px-5 py-4 text-sm text-muted-foreground">{order.service_type}</td>
                         <td className="px-5 py-4">
-                          {order.tyre_brand ? (
-                            <>
-                              <p className="text-sm font-medium text-foreground">{order.tyre_brand} {order.tyre_model}</p>
-                              <p className="text-xs text-muted-foreground">{order.tyre_size} <span className="text-foreground ml-1 font-semibold">x{order.tyre_quantity}</span></p>
-                            </>
+                          {order.tyre_size ? (
+                            <span className="text-sm font-medium text-foreground">{order.tyre_size}</span>
                           ) : <span className="text-muted-foreground">—</span>}
+                        </td>
+                        <td className="px-5 py-4 text-sm font-semibold text-foreground">
+                          {order.tyre_quantity || "—"}
                         </td>
                         <td className="px-5 py-4">
                           {order.slot ? (
