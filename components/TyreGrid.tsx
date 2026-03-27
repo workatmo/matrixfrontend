@@ -1,5 +1,12 @@
 import { TyreCard } from "./TyreCard";
 
+interface Vehicle {
+  registration: string;
+  make: string;
+  model: string;
+  year: number;
+}
+
 interface Tyre {
   id: string;
   brand: string;
@@ -12,9 +19,10 @@ interface Tyre {
 
 interface TyreGridProps {
   tyres: Tyre[];
+  vehicle: Vehicle;
 }
 
-export function TyreGrid({ tyres }: TyreGridProps) {
+export function TyreGrid({ tyres, vehicle }: TyreGridProps) {
   if (!tyres || tyres.length === 0) {
     return (
       <div className="text-center py-20 px-6 max-w-2xl mx-auto">
@@ -45,7 +53,7 @@ export function TyreGrid({ tyres }: TyreGridProps) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {tyres.map((tyre) => (
-            <TyreCard key={tyre.id} tyre={tyre} />
+            <TyreCard key={tyre.id} tyre={tyre} vehicle={vehicle} />
           ))}
         </div>
       </div>

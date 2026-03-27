@@ -1,6 +1,13 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
+interface Vehicle {
+  registration: string;
+  make: string;
+  model: string;
+  year: number;
+}
 
 interface Tyre {
   id: string;
@@ -14,10 +21,26 @@ interface Tyre {
 
 interface TyreCardProps {
   tyre: Tyre;
+  vehicle: Vehicle;
 }
 
-export function TyreCard({ tyre }: TyreCardProps) {
+export function TyreCard({ tyre, vehicle }: TyreCardProps) {
+  const router = useRouter();
   const isSummer = tyre.season.toLowerCase().includes("summer");
+
+  const handleBookNow = () => {
+    const params = new URLSearchParams({
+      tyre_id: tyre.id,
+      tyre_brand: tyre.brand,
+      tyre_model: tyre.model,
+      tyre_size: tyre.size,
+      tyre_price: tyre.price.toString(),
+      vehicle_reg: vehicle.registration,
+      vehicle_make: vehicle.make,
+      vehicle_model: vehicle.model,
+    });
+    router.push(`/checkout?${params.toString()}`);
+  };
 
   return (
     <Card className="flex flex-col h-full bg-white border-neutral-200 transition-all hover:shadow-lg hover:-translate-y-1 group">
@@ -57,7 +80,10 @@ export function TyreCard({ tyre }: TyreCardProps) {
         </div>
       </CardContent>
       <CardFooter className="p-6 pt-0">
-        <Button className="w-full bg-black text-white hover:bg-neutral-800 transition-colors">
+        <Button 
+          onClick={handleBookNow}
+          className="w-full bg-black text-white hover:bg-neutral-800 transition-colors"
+        >
           Book Now
         </Button>
       </CardFooter>

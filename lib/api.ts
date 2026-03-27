@@ -354,10 +354,15 @@ export interface AdminOrderItem {
   user_id: number | null;
   slot_id: number | null;
   user: { id: number; name: string; email: string; phone: string | null } | null;
+  slot?: { id: number; day: string; start_time: string; end_time: string } | null;
   vehicle_registration: string | null;
   vehicle_make: string | null;
   vehicle_model: string | null;
   service_type: string;
+  tyre_brand?: string | null;
+  tyre_model?: string | null;
+  tyre_size?: string | null;
+  tyre_quantity?: number | null;
   amount: string; // decimal from Laravel comes as string
   status: AdminOrderStatus;
   notes: string | null;
@@ -391,6 +396,10 @@ export interface AdminOrderPayload {
   vehicle_make?: string | null;
   vehicle_model?: string | null;
   service_type: string;
+  tyre_brand?: string | null;
+  tyre_model?: string | null;
+  tyre_size?: string | null;
+  tyre_quantity?: number | null;
   amount: number;
   status: AdminOrderStatus;
   notes?: string | null;

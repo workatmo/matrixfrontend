@@ -9,6 +9,7 @@ import { TyreGrid } from "@/components/TyreGrid";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Vehicle {
+  registration: string;
   make: string;
   model: string;
   year: number;
@@ -57,6 +58,7 @@ export default function Home() {
       const tData = responsePayload.tyre || null;
       
       setVehicle({
+        registration: registrationNumber,
         make: vData.make || "Unknown Make",
         model: vData.model || vData.modelVariant || "",
         year: vData.yearOfManufacture || new Date().getFullYear(),
@@ -125,7 +127,7 @@ export default function Home() {
             <VehicleCard vehicle={vehicle} />
           </div>
           <div className="mt-12">
-            <TyreGrid tyres={tyres} />
+            <TyreGrid tyres={tyres} vehicle={vehicle} />
           </div>
         </div>
       )}
