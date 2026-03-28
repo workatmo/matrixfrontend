@@ -810,21 +810,40 @@ export interface PublicTyreItem {
   brand_id: number;
   model: string;
   size_id: number;
-  season_id: number;
-  tyre_type_id: number;
-  fuel_efficiency_id: number;
-  speed_rating_id: number;
+  season_id: number | null;
+  tyre_type_id: number | null;
+  fuel_efficiency_id: number | null;
+  speed_rating_id: number | null;
   price: string;
   stock: number;
   description: string | null;
   status: boolean;
   image_url: string | null;
-  brand?: { id: number; name: string; icon_url: string | null };
-  size?: { id: number; name: string };
-  season?: { id: number; name: string };
-  tyreType?: { id: number; name: string };
-  fuelEfficiency?: { id: number; name: string };
-  speedRating?: { id: number; name: string };
+  // Relationships as serialised to JSON by Laravel (snake_case)
+  brand?: { id: number; name: string; logo_url: string | null; is_active: boolean };
+  size?: { id: number; width: number; profile: number; rim: number; label: string };
+  season?: { id: number; name: string } | null;
+  tyre_type?: { id: number; name: string } | null;
+  fuel_efficiency?: { id: number; rating: string } | null;
+  /** Laravel `speed_ratings` table uses `rating` (e.g. "H"); there is no `name` column. */
+  speed_rating?: { id: number; rating: string; max_speed?: number; name?: string } | null;
+}
+
+/** Merge snake_case and camelCase relation keys (defensive; Laravel uses snake_case). */
+function normalizePublicTyre(item: PublicTyreItem): PublicTyreItem {
+  const r = item as unknown as Record<string, unknown>;
+  return {
+    ...item,
+    brand: item.brand ?? (r.brand as PublicTyreItem["brand"]),
+    size: item.size ?? (r.size as PublicTyreItem["size"]),
+    season: item.season ?? (r.season as PublicTyreItem["season"]),
+    tyre_type:
+      item.tyre_type ?? (r.tyreType as PublicTyreItem["tyre_type"] | undefined),
+    fuel_efficiency:
+      item.fuel_efficiency ?? (r.fuelEfficiency as PublicTyreItem["fuel_efficiency"] | undefined),
+    speed_rating:
+      item.speed_rating ?? (r.speedRating as PublicTyreItem["speed_rating"] | undefined),
+  };
 }
 
 export interface PublicTyreListResult {
@@ -854,8 +873,7 @@ export async function getPublicTyres(page = 1, filters?: { size?: string; brand?
     headers: {
       Accept: "application/json",
     },
-    // Adding tag for standard Next.js caching or revalidation if we decide to use it
-    next: { revalidate: 60 }
+    cache: "no-store",
   });
 
   if (!res.ok) {
@@ -864,7 +882,28 @@ export async function getPublicTyres(page = 1, filters?: { size?: string; brand?
   }
 
   const json = await res.json();
-  return json.data as PublicTyreListResult;
+  const result = json.data as PublicTyreListResult;
+  return {
+    ...result,
+    data: result.data.map((t) => normalizePublicTyre(t)),
+  };
+}
+
+export async function getPublicTyre(id: string | number): Promise<PublicTyreItem> {
+  const url = `${BASE_URL}/public/tyres/${id}`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(describeHttpFailure(res.status, text));
+  }
+
+  const json = await res.json();
+  return normalizePublicTyre(json.data as PublicTyreItem);
 }
 
 export interface SystemUpdateStatus {
