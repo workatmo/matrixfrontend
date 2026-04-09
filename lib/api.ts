@@ -959,6 +959,20 @@ export async function updateApiKey(id: number, value: string): Promise<ApiSettin
   return data.data;
 }
 
+export async function testStripeConnection(mode: "test" | "live"): Promise<{
+  mode: "test" | "live";
+  account_id: string | null;
+  livemode: boolean | null;
+}> {
+  const data = await request<{
+    data: { mode: "test" | "live"; account_id: string | null; livemode: boolean | null };
+  }>("/admin/stripe/test", {
+    method: "POST",
+    body: JSON.stringify({ mode }),
+  });
+  return data.data;
+}
+
 // ── Vehicles ─────────────────────────────────────────────────────────────────
 
 export type AdminVehicleStatus = "active" | "inactive" | "pending";

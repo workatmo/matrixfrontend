@@ -44,7 +44,6 @@ function CheckoutPageContent() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [bookingComplete, setBookingComplete] = useState(false);
 
   // Fetch slots
   useEffect(() => {
@@ -123,8 +122,32 @@ function CheckoutPageContent() {
         throw new Error(err.message || "Failed to confirm booking");
       }
 
-      setBookingComplete(true);
-      toast.success("Booking confirmed successfully!");
+      const json = await res.json();
+      const orderId =
+        (json?.data?.order?.id as number | undefined) ??
+        (json?.data?.order?.order?.id as number | undefined);
+
+      if (!orderId) {
+        throw new Error("Booking created, but order id was missing.");
+      }
+
+      // Start Stripe checkout (test by default; backend gates by API Settings toggles/keys).
+      const stripeRes = await fetch(`/api/public/orders/${orderId}/stripe-checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "test" }),
+      });
+      const stripeJson = await stripeRes.json().catch(() => ({}));
+      if (!stripeRes.ok) {
+        throw new Error(stripeJson?.message || "Failed to start payment.");
+      }
+
+      const url = stripeJson?.data?.url as string | undefined;
+      if (!url) {
+        throw new Error("Stripe did not return a checkout URL.");
+      }
+
+      window.location.assign(url);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Failed to process booking";
       toast.error(msg);
@@ -140,41 +163,6 @@ function CheckoutPageContent() {
           <h2 className="text-2xl font-bold mb-2">Invalid Booking URL</h2>
           <p className="text-neutral-500 mb-6">Please start the booking process again from the home page.</p>
           <Button onClick={() => router.push("/")}>Go Home</Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (bookingComplete) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 px-4 py-12">
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-neutral-200 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600">
-            <CheckCircle2 size={32} />
-          </div>
-          <h2 className="text-2xl font-bold mb-2">Booking Confirmed!</h2>
-          <p className="text-neutral-500 mb-6">
-            Thank you for choosing Matrix Tyres. We have sent a confirmation email to {customer.email}.
-          </p>
-          <div className="bg-neutral-50 rounded-lg p-4 text-left mb-6 space-y-2 text-sm">
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-neutral-500">Service</span>
-              <span className="font-medium">Tyre Fitting</span>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-neutral-500">Time</span>
-              <span className="font-medium capitalize">{selectedSlot?.day}, {selectedSlot?.start_time} - {selectedSlot?.end_time}</span>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-neutral-500">Tyres</span>
-              <span className="font-medium">{tyreQuantity}x {tyre_brand}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-neutral-500">Total</span>
-              <span className="font-bold">£{(parseFloat(tyre_price) * tyreQuantity).toFixed(2)}</span>
-            </div>
-          </div>
-          <Button className="w-full" onClick={() => router.push("/")}>Return to Home</Button>
         </div>
       </div>
     );
