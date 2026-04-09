@@ -16,6 +16,14 @@ interface Slot {
   end_time: string;
 }
 
+interface CheckoutConfig {
+  vat_enabled: boolean;
+  vat_percentage: number;
+  platform_fee_enabled: boolean;
+  platform_fee: number;
+  currency: string;
+}
+
 function CheckoutPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -41,6 +49,13 @@ function CheckoutPageContent() {
   const [tyreQuantity, setTyreQuantity] = useState<number>(4);
   
   const [slots, setSlots] = useState<Slot[]>([]);
+  const [checkoutConfig, setCheckoutConfig] = useState<CheckoutConfig>({
+    vat_enabled: false,
+    vat_percentage: 0,
+    platform_fee_enabled: false,
+    platform_fee: 0,
+    currency: "GBP",
+  });
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,6 +81,43 @@ function CheckoutPageContent() {
     }
     fetchSlots();
   }, []);
+
+  useEffect(() => {
+    async function fetchCheckoutConfig() {
+      try {
+        const res = await fetch("/api/public/checkout-config", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const cfg = data?.data;
+        setCheckoutConfig({
+          vat_enabled: Boolean(cfg?.vat_enabled),
+          vat_percentage:
+            typeof cfg?.vat_percentage === "number"
+              ? cfg.vat_percentage
+              : Number(cfg?.vat_percentage ?? 0),
+          platform_fee_enabled: Boolean(cfg?.platform_fee_enabled),
+          platform_fee:
+            typeof cfg?.platform_fee === "number"
+              ? cfg.platform_fee
+              : Number(cfg?.platform_fee ?? 0),
+          currency: typeof cfg?.currency === "string" && cfg.currency ? cfg.currency : "GBP",
+        });
+      } catch {
+        // Keep defaults for resilient checkout flow.
+      }
+    }
+    void fetchCheckoutConfig();
+  }, []);
+
+  const unitPrice = Number.parseFloat(tyre_price) || 0;
+  const subtotal = unitPrice * tyreQuantity;
+  const platformFee = checkoutConfig.platform_fee_enabled ? checkoutConfig.platform_fee : 0;
+  const taxBase = subtotal + platformFee;
+  const vatAmount = checkoutConfig.vat_enabled
+    ? (taxBase * checkoutConfig.vat_percentage) / 100
+    : 0;
+  const total = subtotal + platformFee + vatAmount;
+  const currencySymbol = checkoutConfig.currency.toUpperCase() === "GBP" ? "£" : `${checkoutConfig.currency.toUpperCase()} `;
 
   // Handlers
   const handleCustomerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,7 +165,7 @@ function CheckoutPageContent() {
           tyre_model,
           tyre_size,
           tyre_quantity: tyreQuantity,
-          tyre_price: parseFloat(tyre_price) * tyreQuantity,
+          tyre_unit_price: unitPrice,
         }),
       });
 
@@ -354,12 +406,13 @@ function CheckoutPageContent() {
                      <div className="bg-neutral-900 text-white rounded-xl p-6 shadow-sm">
                        <h4 className="font-semibold mb-4 text-neutral-400">Payment Summary</h4>
                        <div className="space-y-3">
-                         <div className="flex justify-between text-sm"><span className="text-neutral-300">Tyre & Fitting ({tyreQuantity}x)</span><span>£{(parseFloat(tyre_price) * tyreQuantity).toFixed(2)}</span></div>
-                         <div className="flex justify-between text-sm"><span className="text-neutral-300">Taxes</span><span>Included</span></div>
+                         <div className="flex justify-between text-sm"><span className="text-neutral-300">Subtotal ({tyreQuantity}x)</span><span>{currencySymbol}{subtotal.toFixed(2)}</span></div>
+                         <div className="flex justify-between text-sm"><span className="text-neutral-300">Platform Fee</span><span>{currencySymbol}{platformFee.toFixed(2)}</span></div>
+                         <div className="flex justify-between text-sm"><span className="text-neutral-300">VAT ({checkoutConfig.vat_enabled ? `${checkoutConfig.vat_percentage}%` : "Disabled"})</span><span>{currencySymbol}{vatAmount.toFixed(2)}</span></div>
                          <div className="w-full h-[1px] bg-neutral-700 my-3"></div>
                          <div className="flex justify-between items-center">
                            <span className="font-bold text-lg">Total</span>
-                           <span className="font-bold text-2xl">£{(parseFloat(tyre_price) * tyreQuantity).toFixed(2)}</span>
+                           <span className="font-bold text-2xl">{currencySymbol}{total.toFixed(2)}</span>
                          </div>
                        </div>
                      </div>
