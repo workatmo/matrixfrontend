@@ -2,12 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getCustomerToken } from "@/lib/customer-api";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
   const pathname = usePathname();
+  const [customerSignedIn, setCustomerSignedIn] = useState(false);
+
+  useEffect(() => {
+    setCustomerSignedIn(Boolean(getCustomerToken()));
+  }, [pathname]);
 
   if (pathname.startsWith("/admin")) return null;
+  if (pathname.startsWith("/account")) return null;
 
   const links = [
     { name: "Home", href: "/" },
@@ -43,8 +51,14 @@ export function Navbar() {
           ))}
         </div>
 
-        {/* Empty div to balance the grid for centering */}
-        <div className="flex justify-end"></div>
+        <div className="flex justify-end">
+          <Link
+            href={customerSignedIn ? "/account" : "/account/login"}
+            className="text-sm font-medium text-neutral-400 transition-colors hover:text-white"
+          >
+            {customerSignedIn ? "Dashboard" : "Login"}
+          </Link>
+        </div>
       </div>
     </nav>
   );

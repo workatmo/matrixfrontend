@@ -7,6 +7,7 @@ export function Footer() {
   const pathname = usePathname();
 
   if (pathname.startsWith("/admin")) return null;
+  if (pathname.startsWith("/account")) return null;
 
   return (
     <footer className="bg-black text-white border-t border-neutral-800 py-12 mt-auto">

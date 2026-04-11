@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 
-export default function CheckoutCancelPage() {
+function CheckoutCancelContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get("order_id");
@@ -31,3 +32,16 @@ export default function CheckoutCancelPage() {
   );
 }
 
+export default function CheckoutCancelPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center text-neutral-500 text-sm">
+          Loading…
+        </div>
+      }
+    >
+      <CheckoutCancelContent />
+    </Suspense>
+  );
+}

@@ -62,11 +62,11 @@ export default function TyresPage() {
           <TyreGrid 
             tyres={formattedTyres} 
             vehicle={{
-                registration: "Browsing Mode",
-                make: "Unknown",
-                model: "Unknown",
-                year: new Date().getFullYear()
-            }} 
+              registration: "",
+              make: "",
+              model: "",
+              year: new Date().getFullYear(),
+            }}
           />
         ) : (
           <div className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-20">
