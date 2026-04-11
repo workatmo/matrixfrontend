@@ -58,6 +58,7 @@ export default function AdminSectionLayout({
           "/admin/users": "customers",
           "/admin/vehicles": "vehicles",
           "/admin/orders": "orders",
+          "/admin/payments": "payments",
           "/admin/tyres": "tyres",
           "/admin/slots": "slots",
           "/admin/attributes": "attributes",
@@ -77,7 +78,10 @@ export default function AdminSectionLayout({
         const match = Object.entries(permissionMap).find(([path]) => pathname.startsWith(path));
         if (match) {
           const requiredPerm = match[1];
-          if (!profile.permissions?.includes(requiredPerm)) {
+          const canAlwaysAccess =
+            (pathname.startsWith("/admin/orders") || pathname.startsWith("/admin/payments")) &&
+            (profile.role?.name === "admin" || profile.role?.name === "super_admin");
+          if (!canAlwaysAccess && !profile.permissions?.includes(requiredPerm)) {
             denied = true;
           }
         }

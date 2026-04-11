@@ -7,6 +7,7 @@ import {
   Users,
   Car,
   ShoppingCart,
+  CreditCard,
   CircleDot,
   FileSearch,
   Bell,
@@ -60,6 +61,11 @@ const navItems: NavItem[] = [
     label: "Orders",
     href: "/admin/orders",
     icon: ShoppingCart,
+  },
+  {
+    label: "Payments",
+    href: "/admin/payments",
+    icon: CreditCard,
   },
   {
     label: "Tyres",
@@ -139,6 +145,7 @@ export default function Sidebar() {
       Customers: "customers",
       Vehicles: "vehicles",
       Orders: "orders",
+      Payments: "payments",
       Tyres: "tyres",
       Coupons: "coupons",
       Slots: "slots",
@@ -151,6 +158,13 @@ export default function Sidebar() {
       "API Settings": "api_settings",
       "Update": "update",
     };
+
+    if (
+      (item.label === "Orders" || item.label === "Payments") &&
+      (user?.role?.name === "admin" || user?.role?.name === "super_admin")
+    ) {
+      return true;
+    }
 
     const requiredPerm = permissionMap[item.label];
     if (requiredPerm && user?.role?.name !== "super_admin") {

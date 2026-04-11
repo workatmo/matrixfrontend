@@ -38,6 +38,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const ALL_STATUSES: AdminOrderStatus[] = ["pending", "processing", "completed", "cancelled"];
+type AdminOrderPaymentFilter = "" | "paid" | "not_paid";
 
 export default function OrdersPage() {
   return (
@@ -56,7 +57,9 @@ function OrdersContent() {
   const [error, setError]       = useState<string | null>(null);
   const [search, setSearch]     = useState("");
   const [statusFilter, setStatusFilter] = useState<AdminOrderStatus | "">("");
+  const [paymentFilter, setPaymentFilter] = useState<AdminOrderPaymentFilter>("");
   const [showFilter, setShowFilter]     = useState(false);
+  const [showPaymentFilter, setShowPaymentFilter] = useState(false);
   const [actionMenu, setActionMenu]     = useState<number | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
 
@@ -82,11 +85,15 @@ function OrdersContent() {
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchOrders = useCallback(async (q: string, st: AdminOrderStatus | "") => {
+  const fetchOrders = useCallback(async (
+    q: string,
+    st: AdminOrderStatus | "",
+    payment: AdminOrderPaymentFilter,
+  ) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await listAdminOrders({ search: q, status: st });
+      const result = await listAdminOrders({ search: q, status: st, payment });
       setOrders(result.orders);
       setStats(result.stats);
     } catch (e) {
@@ -97,7 +104,7 @@ function OrdersContent() {
   }, []);
 
   useEffect(() => {
-    fetchOrders("", "");
+    fetchOrders("", "", "");
   }, [fetchOrders]);
 
   // Debounced search
@@ -105,14 +112,20 @@ function OrdersContent() {
     setSearch(value);
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {
-      fetchOrders(value, statusFilter);
+      fetchOrders(value, statusFilter, paymentFilter);
     }, 400);
   };
 
   const handleStatusFilter = (st: AdminOrderStatus | "") => {
     setStatusFilter(st);
     setShowFilter(false);
-    fetchOrders(search, st);
+    fetchOrders(search, st, paymentFilter);
+  };
+
+  const handlePaymentFilter = (payment: AdminOrderPaymentFilter) => {
+    setPaymentFilter(payment);
+    setShowPaymentFilter(false);
+    fetchOrders(search, statusFilter, payment);
   };
 
   const handleChangeStatus = async (id: number, status: AdminOrderStatus) => {
@@ -122,7 +135,7 @@ function OrdersContent() {
       const updated = await updateAdminOrderStatus(id, status);
       setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
       // refresh stats
-      fetchOrders(search, statusFilter);
+      fetchOrders(search, statusFilter, paymentFilter);
       toast.success(`Order marked as ${STATUS_LABELS[status]}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to update status.");
@@ -145,7 +158,7 @@ function OrdersContent() {
     try {
       await deleteAdminOrder(id);
       setOrders((prev) => prev.filter((o) => o.id !== id));
-      fetchOrders(search, statusFilter);
+      fetchOrders(search, statusFilter, paymentFilter);
       toast.success("Order deleted successfully.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to delete order.");
@@ -196,7 +209,7 @@ function OrdersContent() {
         notes: editForm.notes || null,
       });
       setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-      fetchOrders(search, statusFilter);
+      fetchOrders(search, statusFilter, paymentFilter);
       toast.success("Order updated successfully.");
       closeEditDialog();
     } catch (e) {
@@ -214,9 +227,27 @@ function OrdersContent() {
   ];
 
   const vehicleLabel = (o: AdminOrderItem) => {
-    const parts = [o.vehicle_registration, o.vehicle_make, o.vehicle_model].filter(Boolean);
-    return parts.length ? parts.join(" · ") : "—";
+    const normalized = [o.vehicle_registration, o.vehicle_make, o.vehicle_model]
+      .map((value) => value?.trim())
+      .filter((value) => {
+        if (!value) return false;
+        const lowered = value.toLowerCase();
+        return (
+          lowered !== "unknown" &&
+          lowered !== "n/a" &&
+          lowered !== "na" &&
+          lowered !== "-" &&
+          lowered !== "browsing mode"
+        );
+      });
+
+    return normalized.length ? normalized.join(" · ") : "N/A";
   };
+
+  const isOrderPaid = (o: AdminOrderItem) =>
+    Boolean(o.paid_at) ||
+    ["paid", "succeeded", "completed", "captured"].includes((o.payment_status ?? "").toLowerCase()) ||
+    o.status === "completed";
 
   return (
     <>
@@ -247,7 +278,10 @@ function OrdersContent() {
           </div>
           <div className="relative">
             <button
-              onClick={() => setShowFilter((p) => !p)}
+              onClick={() => {
+                setShowFilter((p) => !p);
+                setShowPaymentFilter(false);
+              }}
               className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border rounded-xl text-sm text-muted-foreground hover:border-ring hover:text-foreground transition-colors"
             >
               <Filter className="w-4 h-4" />
@@ -270,6 +304,40 @@ function OrdersContent() {
                     {STATUS_LABELS[s]}
                   </button>
                 ))}
+              </div>
+            )}
+          </div>
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowPaymentFilter((p) => !p);
+                setShowFilter(false);
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border rounded-xl text-sm text-muted-foreground hover:border-ring hover:text-foreground transition-colors"
+            >
+              <Filter className="w-4 h-4" />
+              {paymentFilter === "paid" ? "Paid" : paymentFilter === "not_paid" ? "Not Paid" : "Filter by payment"}
+            </button>
+            {showPaymentFilter && (
+              <div className="absolute right-0 mt-1 w-48 bg-card border border-border rounded-xl shadow-lg z-20 overflow-hidden">
+                <button
+                  onClick={() => handlePaymentFilter("")}
+                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-accent transition-colors ${!paymentFilter ? "text-foreground font-medium" : "text-muted-foreground"}`}
+                >
+                  All payments
+                </button>
+                <button
+                  onClick={() => handlePaymentFilter("paid")}
+                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-accent transition-colors ${paymentFilter === "paid" ? "text-foreground font-medium" : "text-muted-foreground"}`}
+                >
+                  Paid
+                </button>
+                <button
+                  onClick={() => handlePaymentFilter("not_paid")}
+                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-accent transition-colors ${paymentFilter === "not_paid" ? "text-foreground font-medium" : "text-muted-foreground"}`}
+                >
+                  Not Paid
+                </button>
               </div>
             )}
           </div>
@@ -313,7 +381,7 @@ function OrdersContent() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    {["Order ID", "Customer", "Vehicle", "Tyres", "Qty", "Slot", "Date", "Amount", "Status", "Actions"].map((h) => (
+                    {["Order ID", "Customer", "Vehicle", "Tyres", "Qty", "Slot", "Date", "Amount", "Payment", "Status", "Actions"].map((h) => (
                       <th key={h} className={h === "Actions" ? "px-5 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider" : "px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"}>
                         {h}
                       </th>
@@ -323,13 +391,13 @@ function OrdersContent() {
                 <tbody className="divide-y divide-border">
                   {loading && orders.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="px-5 py-16 text-center">
+                      <td colSpan={11} className="px-5 py-16 text-center">
                         <Loader2 className="w-6 h-6 text-muted-foreground animate-spin mx-auto" />
                       </td>
                     </tr>
                   ) : orders.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="px-5 py-16 text-center">
+                      <td colSpan={11} className="px-5 py-16 text-center">
                         <div className="flex flex-col items-center gap-2">
                           <ShoppingCart className="w-8 h-8 text-muted-foreground/40" />
                           <p className="text-sm text-muted-foreground">No orders found.</p>
@@ -371,6 +439,11 @@ function OrdersContent() {
                         </td>
                         <td className="px-5 py-4 text-sm text-foreground font-medium">
                           {formatCurrency(order.amount, settings?.currency)}
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${isOrderPaid(order) ? "text-emerald-500 bg-emerald-500/10" : "text-rose-500 bg-rose-500/10"}`}>
+                            {isOrderPaid(order) ? "Paid" : "Not Paid"}
+                          </span>
                         </td>
                         <td className="px-5 py-4">
                           <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_STYLES[order.status]}`}>
@@ -442,6 +515,9 @@ function OrdersContent() {
       )}
       {showFilter && (
         <div className="fixed inset-0 z-10" onClick={() => setShowFilter(false)} />
+      )}
+      {showPaymentFilter && (
+        <div className="fixed inset-0 z-10" onClick={() => setShowPaymentFilter(false)} />
       )}
 
       {/* Edit Order Dialog */}

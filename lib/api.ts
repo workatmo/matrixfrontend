@@ -364,6 +364,12 @@ export interface AdminOrderItem {
   tyre_size?: string | null;
   tyre_quantity?: number | null;
   amount: string; // decimal from Laravel comes as string
+  payment_provider?: string | null;
+  payment_status?: string | null;
+  stripe_mode?: string | null;
+  stripe_checkout_session_id?: string | null;
+  stripe_payment_intent_id?: string | null;
+  paid_at?: string | null;
   status: AdminOrderStatus;
   notes: string | null;
   created_at: string | null;
@@ -408,12 +414,14 @@ export interface AdminOrderPayload {
 export async function listAdminOrders(params?: {
   search?: string;
   status?: AdminOrderStatus | "";
+  payment?: "paid" | "not_paid" | "";
   page?: number;
   per_page?: number;
 }): Promise<AdminOrdersListResult> {
   const qs = new URLSearchParams();
   if (params?.search) qs.set("search", params.search);
   if (params?.status) qs.set("status", params.status);
+  if (params?.payment) qs.set("payment", params.payment);
   if (params?.page) qs.set("page", String(params.page));
   if (params?.per_page) qs.set("per_page", String(params.per_page));
   const suffix = qs.toString() ? `?${qs.toString()}` : "";

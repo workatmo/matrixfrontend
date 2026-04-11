@@ -50,7 +50,7 @@ export function TyreCard({ tyre, vehicle }: TyreCardProps) {
   const showImage = tyre.image && tyre.image !== "default" && !imageError;
 
   return (
-    <Card className="flex flex-col h-full bg-white border-neutral-200 transition-all hover:shadow-lg hover:-translate-y-1 group">
+    <Card className="flex flex-col h-full bg-white border-neutral-200 transition-all hover:shadow-lg hover:-translate-y-1 group p-0 gap-0">
       <Link href={`/tyres/${tyre.id}`} className="block">
         <CardHeader className="bg-neutral-50 rounded-t-lg border-b border-neutral-100 p-6 flex flex-col items-center justify-center min-h-[160px] relative overflow-hidden">
           {showImage ? (
@@ -107,7 +107,7 @@ export function TyreCard({ tyre, vehicle }: TyreCardProps) {
         </div>
       </CardContent>
 
-      <CardFooter className="p-6 pt-0">
+      <CardFooter className="p-6 pt-0 bg-transparent border-none">
         <Button
           onClick={handleBookNow}
           className="w-full bg-black text-white hover:bg-neutral-800 transition-colors"

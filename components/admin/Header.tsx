@@ -3,7 +3,7 @@
 import { adminLogout } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Bell, ChevronDown, LogOut, Moon, Sun, User } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/theme-provider";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAdminAuth } from "@/components/admin/AuthContext";
