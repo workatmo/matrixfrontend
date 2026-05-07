@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { clientApiUrl } from "@/lib/public-api-url";
 
 type PublicOrder = {
   id: number;
@@ -41,14 +42,14 @@ export default function CheckoutSuccessClient() {
       }
       try {
         if (sessionId) {
-          await fetch(`/api/public/orders/${orderId}/stripe-confirm`, {
+          await fetch(clientApiUrl(`/public/orders/${orderId}/stripe-confirm`), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ session_id: sessionId }),
           });
         }
 
-        const res = await fetch(`/api/public/orders/${orderId}`, { cache: "no-store" });
+        const res = await fetch(clientApiUrl(`/public/orders/${orderId}`), { cache: "no-store" });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
           throw new Error(json?.message || "Failed to load order status.");

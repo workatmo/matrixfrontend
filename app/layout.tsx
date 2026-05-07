@@ -4,25 +4,95 @@ import "./globals.css";
 import { publicAppUrl } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SiteChrome } from "@/components/SiteChrome";
+import { seoKeywords } from "@/lib/seo";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 const fontMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(publicAppUrl),
-  title: "Matrix Super Admin",
-  description: "Super Admin Dashboard for Matrix Platform",
+  title: {
+    default: "Buy Car Tyres Online | Mobile Tyre Fitting Near You | matrix Tyres",
+    template: "%s | matrix Tyres",
+  },
+  description:
+    "Find the best tyres for your car using your registration number. Book mobile tyre fitting with fast service and best prices.",
+  keywords: seoKeywords,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Buy Car Tyres Online | Mobile Tyre Fitting Near You | matrix Tyres",
+    description:
+      "Find the best tyres for your car using your registration number. Book mobile tyre fitting with fast service and best prices.",
+    url: "/",
+    type: "website",
+    siteName: "matrix Tyres",
+    images: [
+      {
+        url: "/tyre-placeholder.svg",
+        width: 1200,
+        height: 630,
+        alt: "matrix Tyres mobile tyre fitting service",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Buy Car Tyres Online | Mobile Tyre Fitting Near You | matrix Tyres",
+    description:
+      "Find the best tyres for your car using your registration number. Book mobile tyre fitting with fast service and best prices.",
+    images: ["/tyre-placeholder.svg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+      "max-snippet": -1,
+    },
+  },
+  verification: {
+    google: "Q6iQIthxDGnrCJPxIrtYE6j85K7RsmBKUyMJV_BD9WQ",
+  },
 };
 
 import { Toaster } from "@/components/ui/sonner";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const base = publicAppUrl.replace(/\/$/, "");
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": `${base}#organization`,
+    name: "matrix Tyres",
+    url: publicAppUrl,
+    logo: `${publicAppUrl.replace(/\/$/, "")}/tyre-placeholder.svg`,
+    sameAs: [],
+  };
+
+  const localBusinessSchema = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "@id": `${base}#localbusiness`,
+    name: "matrix Tyres",
+    image: `${publicAppUrl.replace(/\/$/, "")}/tyre-placeholder.svg`,
+    url: publicAppUrl,
+    telephone: "+44 7721 570075",
+    areaServed: ["London", "Manchester", "Birmingham", "Leeds", "Coventry"],
+    priceRange: "GBP",
+    serviceType: "Mobile tyre fitting",
+    parentOrganization: { "@id": `${base}#organization` },
+  };
+
   return (
     <html
       lang="en"
@@ -30,19 +100,21 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="bg-background text-foreground font-sans">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
           enableSystem={false}
           disableTransitionOnChange
         >
-          <div className="flex flex-col min-h-screen">
-            <Navbar />
-            <main className="flex-grow">
-              {children}
-            </main>
-            <Footer />
-          </div>
+          <SiteChrome>{children}</SiteChrome>
           <Toaster position="bottom-right" richColors />
         </ThemeProvider>
       </body>

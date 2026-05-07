@@ -28,8 +28,13 @@ function normalizeApiBaseUrl(raw: string): string {
   }
 }
 
+const prefersStaticApi =
+  process.env.STATIC_EXPORT === "1" && typeof process.env.NEXT_PUBLIC_STATIC_API_URL === "string";
+
 export const apiBaseUrl = normalizeApiBaseUrl(
-  process.env.NEXT_PUBLIC_API_URL ?? "/api-backend",
+  prefersStaticApi
+    ? process.env.NEXT_PUBLIC_STATIC_API_URL!
+    : (process.env.NEXT_PUBLIC_API_URL ?? "/api-backend"),
 );
 
 export const publicAppUrl =

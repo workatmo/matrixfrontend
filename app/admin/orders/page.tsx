@@ -3,9 +3,10 @@
 import { toast } from "sonner";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/admin/Layout";
 import {
-  Search, Filter, MoreHorizontal, ShoppingCart, Clock, CheckCircle, XCircle, Loader2, Trash2, Edit
+  Search, Filter, MoreHorizontal, ShoppingCart, Clock, CheckCircle, XCircle, Loader2, Trash2, Edit, Plus, Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,6 +19,7 @@ import {
   updateAdminOrderStatus,
   deleteAdminOrder,
   updateAdminOrder,
+  downloadAdminOrderInvoice,
   AdminOrderItem,
   AdminOrderStats,
   AdminOrderStatus,
@@ -82,6 +84,7 @@ function OrdersContent() {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingOrderId, setDeletingOrderId] = useState<number | null>(null);
+  const router = useRouter();
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -148,6 +151,19 @@ function OrdersContent() {
     setDeletingOrderId(id);
     setDeleteDialogOpen(true);
     setActionMenu(null);
+  };
+
+  const handleDownloadInvoice = async (id: number) => {
+    setActionMenu(null);
+    setActionLoading(id);
+    try {
+      await downloadAdminOrderInvoice(id);
+      toast.success("Invoice downloaded.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to download invoice.");
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const confirmDelete = async () => {
@@ -249,6 +265,12 @@ function OrdersContent() {
     ["paid", "succeeded", "completed", "captured"].includes((o.payment_status ?? "").toLowerCase()) ||
     o.status === "completed";
 
+  const formatOrderRef = (id: number) => {
+    // Locally created manual orders currently use Date.now() as id.
+    if (id >= 1_000_000_000) return `#M${String(id).slice(-4)}`;
+    return `#${String(id).padStart(3, "0")}`;
+  };
+
   return (
     <>
       <div className="w-full space-y-6">
@@ -341,6 +363,14 @@ function OrdersContent() {
               </div>
             )}
           </div>
+          <Button
+            type="button"
+            onClick={() => router.push("/admin/orders/create")}
+            className="h-10 rounded-xl px-4"
+          >
+            <Plus className="h-4 w-4" />
+            Create Order
+          </Button>
         </div>
 
         {/* Stats */}
@@ -410,7 +440,7 @@ function OrdersContent() {
                         key={order.id}
                         className={`hover:bg-accent/30 transition-colors ${actionLoading === order.id ? "opacity-50 pointer-events-none" : ""}`}
                       >
-                        <td className="px-5 py-4 text-sm text-muted-foreground font-mono">#{String(order.id).padStart(3, "0")}</td>
+                        <td className="px-5 py-4 text-sm text-muted-foreground font-mono">{formatOrderRef(order.id)}</td>
                         <td className="px-5 py-4">
                           <p className="text-sm text-foreground">{order.user?.name ?? "—"}</p>
                           {order.user?.phone && (
@@ -480,7 +510,14 @@ function OrdersContent() {
                                   </button>
                                   {actionMenu === order.id && (
                                     <div className="absolute right-0 top-full mt-1 w-48 bg-card border border-border rounded-xl shadow-lg z-20 overflow-hidden">
-                                      <p className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border">
+                                      <button
+                                        onClick={() => handleDownloadInvoice(order.id)}
+                                        className="w-full text-left px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors flex items-center gap-2"
+                                      >
+                                        <Download className="w-4 h-4" />
+                                        Download Invoice
+                                      </button>
+                                      <p className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider border-y border-border">
                                         Change Status
                                       </p>
                                       {ALL_STATUSES.filter((s) => s !== order.status).map((s) => (
@@ -524,7 +561,7 @@ function OrdersContent() {
       <Dialog open={editDialogOpen} onOpenChange={(open) => !open && closeEditDialog()}>
         <DialogContent className="sm:max-w-[600px] bg-card border border-border">
           <DialogHeader>
-            <DialogTitle>Edit Order #{String(editingOrder?.id).padStart(3, "0")}</DialogTitle>
+            <DialogTitle>Edit Order {editingOrder ? formatOrderRef(editingOrder.id) : ""}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-4">
@@ -667,6 +704,7 @@ function OrdersContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </>
   );
 }

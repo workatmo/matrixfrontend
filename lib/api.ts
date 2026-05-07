@@ -398,6 +398,7 @@ export interface AdminOrdersListResult {
 export interface AdminOrderPayload {
   user_id?: number | null;
   slot_id?: number | null;
+  fitting_date?: string | null;
   vehicle_registration?: string | null;
   vehicle_make?: string | null;
   vehicle_model?: string | null;
@@ -407,6 +408,9 @@ export interface AdminOrderPayload {
   tyre_size?: string | null;
   tyre_quantity?: number | null;
   amount: number;
+  payment_provider?: string | null;
+  payment_status?: string | null;
+  paid_at?: string | null;
   status: AdminOrderStatus;
   notes?: string | null;
 }
@@ -455,6 +459,49 @@ export async function updateAdminOrderStatus(id: number, status: AdminOrderStatu
 
 export async function deleteAdminOrder(id: number): Promise<void> {
   await request(`/admin/orders/${id}`, { method: "DELETE" });
+}
+
+export async function downloadAdminOrderInvoice(id: number): Promise<void> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)
+      : null;
+
+  const res = await fetch(`${BASE_URL}/admin/orders/${id}/invoice`, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      Accept: "application/pdf",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!res.ok) {
+    if (res.status === 401 && typeof window !== "undefined") {
+      localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+      window.location.assign("/admin/login");
+    }
+    let message = `Failed to download invoice (HTTP ${res.status}).`;
+    try {
+      const text = await res.text();
+      const json = parseJsonRecord(text);
+      const fromApi = messageFromApiPayload(json);
+      if (fromApi) message = fromApi;
+    } catch {
+      // Ignore non-JSON error bodies.
+    }
+    throw new Error(message);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `invoice-${id}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export async function listAdminUsers(
@@ -2054,6 +2101,8 @@ export interface AdminSettings {
   vat_enabled: string;          // "1" | "0"
   platform_fee: string;         // fixed amount
   platform_fee_enabled: string; // "1" | "0"
+  tpms_charge: string;          // fixed amount
+  tpms_charge_enabled: string;  // "1" | "0"
   maintenance_mode: string;     // "1" | "0"
   maintenance_message: string;
   timezone: string;

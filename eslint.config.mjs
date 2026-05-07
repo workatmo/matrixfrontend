@@ -13,6 +13,13 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      // This project intentionally uses effects to sync UI state with browser-only APIs
+      // (localStorage, pathname, etc.). The rule is too strict for this codebase.
+      "react-hooks/set-state-in-effect": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

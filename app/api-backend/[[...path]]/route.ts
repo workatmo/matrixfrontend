@@ -17,7 +17,7 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path?: string[] 
   if (!targetBase) {
     return NextResponse.json(
       { message: "Missing LARAVEL_PROXY_TARGET in matrixfrontend/.env" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -26,22 +26,41 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path?: string[] 
 
   const headers = new Headers(req.headers);
   headers.delete("host");
+  headers.delete("connection");
+  headers.delete("content-length");
+  headers.delete("accept-encoding");
+
+  // Laravel decides whether to return JSON vs redirect based on "Accept".
+  // Force JSON so API middleware returns 401/403 instead of HTML redirects.
+  headers.set("accept", "application/json");
 
   const method = req.method.toUpperCase();
   const body =
     method === "GET" || method === "HEAD" ? undefined : await req.arrayBuffer();
 
-  const upstream = await fetch(targetUrl, {
-    method,
-    headers,
-    body,
-    redirect: "manual",
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(targetUrl, {
+      method,
+      headers,
+      body,
+      redirect: "manual",
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        message: "Unable to reach Laravel API.",
+        target: targetBase,
+        detail: error instanceof Error ? error.message : "Unknown proxy error",
+      },
+      { status: 502 },
+    );
+  }
 
   const resHeaders = new Headers(upstream.headers);
-  // Avoid leaking upstream compression headers; Next will handle encoding.
   resHeaders.delete("content-encoding");
   resHeaders.delete("content-length");
+  resHeaders.delete("transfer-encoding");
 
   return new NextResponse(upstream.body, {
     status: upstream.status,
@@ -56,3 +75,4 @@ export const PUT = proxy;
 export const PATCH = proxy;
 export const DELETE = proxy;
 export const OPTIONS = proxy;
+export const HEAD = proxy;

@@ -53,6 +53,8 @@ const INITIAL: AdminSettings = {
   vat_enabled: "1",
   platform_fee: "",
   platform_fee_enabled: "1",
+  tpms_charge: "",
+  tpms_charge_enabled: "0",
   maintenance_mode: "0",
   maintenance_message: "",
   timezone: "",
@@ -255,6 +257,8 @@ export default function SettingsPage() {
         vat_enabled: data.vat_enabled ?? "1",
         platform_fee: data.platform_fee ?? "",
         platform_fee_enabled: data.platform_fee_enabled ?? "1",
+        tpms_charge: data.tpms_charge ?? "",
+        tpms_charge_enabled: data.tpms_charge_enabled ?? "0",
         maintenance_mode: data.maintenance_mode ?? "0",
         maintenance_message: data.maintenance_message ?? "We are currently undergoing scheduled maintenance. Please check back soon.",
         timezone: data.timezone ?? "",
@@ -301,7 +305,7 @@ export default function SettingsPage() {
   const set = (key: keyof AdminSettings) => (value: string) =>
     setSettings((prev) => ({ ...prev, [key]: value }));
 
-  const toggle = (key: "vat_enabled" | "platform_fee_enabled" | "maintenance_mode" | "online_payment" | "cash_on_delivery" | "smtp_enabled") => (checked: boolean) =>
+  const toggle = (key: "vat_enabled" | "platform_fee_enabled" | "tpms_charge_enabled" | "maintenance_mode" | "online_payment" | "cash_on_delivery" | "smtp_enabled") => (checked: boolean) =>
     setSettings((prev) => ({ ...prev, [key]: checked ? "1" : "0" }));
 
   const handleSave = async () => {
@@ -324,6 +328,8 @@ export default function SettingsPage() {
         vat_enabled: updated.vat_enabled ?? "1",
         platform_fee: updated.platform_fee ?? "",
         platform_fee_enabled: updated.platform_fee_enabled ?? "1",
+        tpms_charge: updated.tpms_charge ?? "",
+        tpms_charge_enabled: updated.tpms_charge_enabled ?? "0",
         maintenance_mode: updated.maintenance_mode ?? "0",
         maintenance_message: updated.maintenance_message ?? "We are currently undergoing scheduled maintenance. Please check back soon.",
         timezone: updated.timezone ?? "",
@@ -350,6 +356,7 @@ export default function SettingsPage() {
 
   const vatEnabled = settings.vat_enabled === "1";
   const feeEnabled = settings.platform_fee_enabled === "1";
+  const tpmsEnabled = settings.tpms_charge_enabled === "1";
   const maintenanceEnabled = settings.maintenance_mode === "1";
   const onlinePaymentEnabled = settings.online_payment === "1";
   const codEnabled = settings.cash_on_delivery === "1";
@@ -466,7 +473,7 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle>Business & Tax Settings</CardTitle>
                 <CardDescription>
-                  Configure VAT/GST and platform fees applied to orders.
+                  Configure VAT/GST, platform fees, and TPMS charges applied to orders.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
@@ -534,6 +541,41 @@ export default function SettingsPage() {
                           step="0.01" 
                           className="pl-7"
                           onChange={(e) => set("platform_fee")(e.target.value)} 
+                        />
+                      </div>
+                      <p className="text-[0.8rem] text-muted-foreground">Amount added at checkout.</p>
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* TPMS charges */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between rounded-lg border p-4 shadow-sm">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">TPMS charges</Label>
+                      <p className="text-[0.8rem] text-muted-foreground">
+                        Apply a fixed TPMS service surcharge to orders at checkout when enabled.
+                      </p>
+                    </div>
+                    <Switch checked={tpmsEnabled} onCheckedChange={toggle("tpms_charge_enabled")} />
+                  </div>
+
+                  {tpmsEnabled && (
+                    <div className="space-y-3 max-w-[240px] pt-2 animate-in fade-in slide-in-from-top-2">
+                      <Label htmlFor="tpms_charge">TPMS charge amount ({currencySymbol})</Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{currencySymbol}</span>
+                        <Input
+                          id="tpms_charge"
+                          type="number"
+                          value={settings.tpms_charge}
+                          placeholder="0.00"
+                          min="0"
+                          step="0.01"
+                          className="pl-7"
+                          onChange={(e) => set("tpms_charge")(e.target.value)}
                         />
                       </div>
                       <p className="text-[0.8rem] text-muted-foreground">Amount added at checkout.</p>

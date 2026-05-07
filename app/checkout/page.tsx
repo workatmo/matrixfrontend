@@ -4,9 +4,11 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { clientApiUrl } from "@/lib/public-api-url";
 import { toast } from "sonner";
 import {
   CheckCircle2,
@@ -18,6 +20,7 @@ import {
   FileText,
   MapPin,
   Loader2,
+  LocateFixed,
 } from "lucide-react";
 
 interface Slot {
@@ -37,7 +40,11 @@ interface CheckoutConfig {
   vat_percentage: number;
   platform_fee_enabled: boolean;
   platform_fee: number;
+  tpms_charge_enabled: boolean;
+  tpms_charge: number;
   currency: string;
+  /** True when admin Google Maps API key is set and enabled (reverse geocode for checkout). */
+  maps_location_enabled: boolean;
 }
 
 type CheckoutConfigStatus = "loading" | "ready" | "error";
@@ -57,7 +64,12 @@ type CheckoutFormPersist = {
   note: string;
 };
 
-const STEPPER_LABELS = ["Basic Details", "Address Details", "Time Slot", "Confirmation"] as const;
+const STEPPER_STEPS = [
+  { desktop: "Basic Details", mobile: "Details" },
+  { desktop: "Address Details", mobile: "Address" },
+  { desktop: "Time Slot", mobile: "Slot" },
+  { desktop: "Confirmation", mobile: "Confirm" },
+] as const;
 
 /** JS getDay() 0 = Sunday … 6 = Saturday → Laravel slot `day` enum */
 const SLOT_DAY_KEYS = [
@@ -181,7 +193,14 @@ function CheckoutPageContent() {
     () => searchParams.get("vehicle_reg")?.trim() || ""
   );
   /** Raw digits while typing; parsed via `tyreQuantity` for totals and API. */
-  const [tyreQtyStr, setTyreQtyStr] = useState("1");
+  const [tyreQtyStr, setTyreQtyStr] = useState(() => {
+    const fromQuery = searchParams.get("tyre_quantity")?.trim() ?? "";
+    const n = Number.parseInt(fromQuery, 10);
+    if (Number.isNaN(n) || n < 1) {
+      return "1";
+    }
+    return String(Math.min(999, n));
+  });
   const tyreQuantity = useMemo(() => {
     const trimmed = tyreQtyStr.trim();
     if (trimmed === "") return 1;
@@ -196,7 +215,10 @@ function CheckoutPageContent() {
     vat_percentage: 0,
     platform_fee_enabled: false,
     platform_fee: 0,
+    tpms_charge_enabled: false,
+    tpms_charge: 0,
     currency: "GBP",
+    maps_location_enabled: false,
   });
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
@@ -204,7 +226,10 @@ function CheckoutPageContent() {
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkoutConfigStatus, setCheckoutConfigStatus] = useState<CheckoutConfigStatus>("loading");
+  /** Customer opt-in for TPMS add-on when the store offers it (priced in checkout config). */
+  const [includeTpms, setIncludeTpms] = useState(false);
   const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
+  const [isResolvingLocation, setIsResolvingLocation] = useState(false);
 
   const calendarDates = useMemo(() => generateCalendarDates(), []);
 
@@ -249,7 +274,9 @@ function CheckoutPageContent() {
     async function loadOccupancy() {
       try {
         const res = await fetch(
-          `/api/public/slots/occupancy?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+          clientApiUrl(
+            `/public/slots/occupancy?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+          )
         );
         if (!res.ok) return;
         const json = await res.json();
@@ -347,7 +374,7 @@ function CheckoutPageContent() {
     async function fetchSlots() {
       setIsLoadingSlots(true);
       try {
-        const res = await fetch("/api/public/slots");
+        const res = await fetch(clientApiUrl("/public/slots"));
         if (res.ok) {
           const data = await res.json();
           setSlots(data.data.slots || []);
@@ -368,7 +395,7 @@ function CheckoutPageContent() {
     async function fetchCheckoutConfig() {
       setCheckoutConfigStatus("loading");
       try {
-        const res = await fetch("/api/public/checkout-config", { cache: "no-store" });
+        const res = await fetch(clientApiUrl("/public/checkout-config"), { cache: "no-store" });
         if (!res.ok) {
           setCheckoutConfigStatus("error");
           return;
@@ -386,7 +413,13 @@ function CheckoutPageContent() {
             typeof cfg?.platform_fee === "number"
               ? cfg.platform_fee
               : Number(cfg?.platform_fee ?? 0),
+          tpms_charge_enabled: Boolean(cfg?.tpms_charge_enabled),
+          tpms_charge:
+            typeof cfg?.tpms_charge === "number"
+              ? cfg.tpms_charge
+              : Number(cfg?.tpms_charge ?? 0),
           currency: typeof cfg?.currency === "string" && cfg.currency ? cfg.currency : "GBP",
+          maps_location_enabled: Boolean(cfg?.maps_location_enabled),
         });
         setCheckoutConfigStatus("ready");
       } catch {
@@ -396,14 +429,24 @@ function CheckoutPageContent() {
     void fetchCheckoutConfig();
   }, []);
 
+  useEffect(() => {
+    if (checkoutConfigStatus !== "ready") return;
+    const offered =
+      checkoutConfig.tpms_charge_enabled && checkoutConfig.tpms_charge > 0;
+    setIncludeTpms(offered);
+  }, [checkoutConfigStatus, checkoutConfig.tpms_charge_enabled, checkoutConfig.tpms_charge]);
+
   const unitPrice = Number.parseFloat(tyre_price) || 0;
   const subtotal = unitPrice * tyreQuantity;
   const platformFee = checkoutConfig.platform_fee_enabled ? checkoutConfig.platform_fee : 0;
-  const taxBase = subtotal + platformFee;
+  const tpmsOffered =
+    checkoutConfig.tpms_charge_enabled && checkoutConfig.tpms_charge > 0;
+  const tpmsCharge = tpmsOffered && includeTpms ? checkoutConfig.tpms_charge : 0;
+  const taxBase = subtotal + platformFee + tpmsCharge;
   const vatAmount = checkoutConfig.vat_enabled
     ? (taxBase * checkoutConfig.vat_percentage) / 100
     : 0;
-  const total = subtotal + platformFee + vatAmount;
+  const total = subtotal + platformFee + tpmsCharge + vatAmount;
   const currencySymbol =
     checkoutConfig.currency.toUpperCase() === "GBP" ? "£" : `${checkoutConfig.currency.toUpperCase()} `;
 
@@ -412,6 +455,71 @@ function CheckoutPageContent() {
   ) => {
     const { name, value } = e.target;
     setCustomer((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const fillAddressFromCoordinates = async (latitude: number, longitude: number) => {
+    try {
+      const res = await fetch(clientApiUrl("/public/reverse-geocode"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ latitude, longitude }),
+      });
+      const json: { message?: string; data?: { address?: string; city?: string; postcode?: string } } =
+        await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(typeof json?.message === "string" ? json.message : "Could not look up this location.");
+        return;
+      }
+      const row = json?.data;
+      const addr = typeof row?.address === "string" ? row.address.trim() : "";
+      const cityVal = typeof row?.city === "string" ? row.city.trim() : "";
+      const pc = typeof row?.postcode === "string" ? row.postcode.trim() : "";
+      if (!addr && !cityVal && !pc) {
+        toast.error("No address details were returned for this location.");
+        return;
+      }
+      setCustomer((prev) => ({
+        ...prev,
+        address: addr || prev.address,
+        city: cityVal || prev.city,
+        postcode: pc || prev.postcode,
+      }));
+      toast.success("Address filled from your current location");
+    } catch {
+      toast.error("Could not look up this location.");
+    } finally {
+      setIsResolvingLocation(false);
+    }
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!checkoutConfig.maps_location_enabled) {
+      toast.error(
+        "Location lookup is not available. An administrator can add a Google Maps API key under API settings."
+      );
+      return;
+    }
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      toast.error("Your browser does not support location services.");
+      return;
+    }
+    setIsResolvingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        void fillAddressFromCoordinates(pos.coords.latitude, pos.coords.longitude);
+      },
+      (err) => {
+        setIsResolvingLocation(false);
+        if (err.code === 1) {
+          toast.error("Location permission was denied. Allow location access to use this feature.");
+        } else if (err.code === 2) {
+          toast.error("Your position could not be determined.");
+        } else {
+          toast.error("Could not read your current location.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 20_000, maximumAge: 60_000 }
+    );
   };
 
   const progressPercent = ((step - 1) / 3) * 100;
@@ -464,7 +572,7 @@ function CheckoutPageContent() {
     setIsSubmitting(true);
     try {
       const comment = customer.customer_comment.trim();
-      const res = await fetch("/api/public/checkout", {
+      const res = await fetch(clientApiUrl("/public/checkout"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -486,6 +594,7 @@ function CheckoutPageContent() {
           tyre_size,
           tyre_quantity: tyreQuantity,
           tyre_unit_price: unitPrice,
+          include_tpms: includeTpms,
         }),
       });
 
@@ -503,7 +612,7 @@ function CheckoutPageContent() {
         throw new Error("Booking created, but order id was missing.");
       }
 
-      const stripeRes = await fetch(`/api/public/orders/${orderId}/stripe-checkout`, {
+      const stripeRes = await fetch(clientApiUrl(`/public/orders/${orderId}/stripe-checkout`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "test" }),
@@ -555,6 +664,9 @@ function CheckoutPageContent() {
           >
             Complete your booking
           </h1>
+          <p className="mb-4 max-w-2xl text-sm text-neutral-600">
+            Confirm your fitting details, choose a convenient slot, and secure your booking in minutes.
+          </p>
           {checkoutConfigStatus === "loading" ? (
             <p className="flex items-center gap-2 text-sm text-neutral-500 mb-4">
               <Loader2 className="h-4 w-4 shrink-0 animate-spin text-neutral-600" aria-hidden />
@@ -565,7 +677,7 @@ function CheckoutPageContent() {
               Could not load latest tax settings; totals may use defaults.
             </p>
           ) : null}
-          <div className="flex items-center justify-between relative">
+          <div className="relative grid grid-cols-4 items-center gap-2">
             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-[2px] bg-neutral-200 -z-10" />
             <div
               className="absolute left-0 top-1/2 -translate-y-1/2 h-[2px] bg-black -z-10 transition-all duration-500"
@@ -575,7 +687,7 @@ function CheckoutPageContent() {
             {[1, 2, 3, 4].map((s) => (
               <div
                 key={s}
-                className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm transition-colors duration-300 ${
+                className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors duration-300 ${
                   step >= s ? "bg-black text-white" : "bg-white border-2 border-neutral-200 text-neutral-400"
                 }`}
               >
@@ -583,13 +695,14 @@ function CheckoutPageContent() {
               </div>
             ))}
           </div>
-          <div className="flex justify-between mt-2 text-xs font-medium text-neutral-500 px-0 gap-1">
-            {STEPPER_LABELS.map((label, i) => (
+          <div className="mt-2 grid grid-cols-4 gap-1 text-[11px] font-medium text-neutral-500 sm:text-xs">
+            {STEPPER_STEPS.map((label, i) => (
               <span
-                key={label}
-                className={`text-center flex-1 min-w-0 ${step >= i + 1 ? "text-black" : ""}`}
+                key={label.desktop}
+                className={`min-w-0 text-center ${step >= i + 1 ? "text-black" : ""}`}
               >
-                {label}
+                <span className="hidden sm:inline">{label.desktop}</span>
+                <span className="sm:hidden">{label.mobile}</span>
               </span>
             ))}
           </div>
@@ -709,6 +822,25 @@ function CheckoutPageContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 pt-6 bg-white">
+                {checkoutConfigStatus === "ready" && checkoutConfig.maps_location_enabled ? (
+                  <div className="space-y-2">
+                    <Label className="text-neutral-900">Current location</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleUseCurrentLocation}
+                      disabled={isResolvingLocation}
+                      className="w-full sm:w-auto gap-2 text-neutral-900 border-neutral-300 bg-white hover:bg-neutral-100"
+                    >
+                      {isResolvingLocation ? (
+                        <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                      ) : (
+                        <LocateFixed className="h-4 w-4 shrink-0" aria-hidden />
+                      )}
+                      Use my current location
+                    </Button>
+                  </div>
+                ) : null}
                 <div className="space-y-2">
                   <Label htmlFor="address" className="text-neutral-900">
                     Address <RequiredStar />
@@ -968,6 +1100,29 @@ function CheckoutPageContent() {
                             className="h-10 w-24 shrink-0 border-2 border-neutral-300 bg-white text-center text-neutral-900 shadow-sm md:text-sm focus-visible:border-neutral-500"
                           />
                         </div>
+                        {tpmsOffered ? (
+                          <div className="flex items-start gap-3 rounded-lg border border-neutral-200 bg-white p-3 mt-3">
+                            <Checkbox
+                              id="checkout-include-tpms"
+                              checked={includeTpms}
+                              onCheckedChange={(checked) => setIncludeTpms(checked === true)}
+                              className="mt-0.5"
+                            />
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <Label
+                                htmlFor="checkout-include-tpms"
+                                className="text-neutral-900 font-medium leading-snug cursor-pointer"
+                              >
+                                TPMS service (add-on)
+                              </Label>
+                              <p className="text-xs text-neutral-500 leading-snug">
+                                Optional fixed fee of {currencySymbol}
+                                {checkoutConfig.tpms_charge.toFixed(2)} for TPMS work. Shown in the payment
+                                summary when selected.
+                              </p>
+                            </div>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
 
@@ -1040,6 +1195,34 @@ function CheckoutPageContent() {
                             {platformFee.toFixed(2)}
                           </span>
                         </div>
+                        {tpmsOffered ? (
+                          <div className="flex justify-between text-sm gap-3 items-start">
+                            <span className="text-neutral-300 flex items-start gap-2 min-w-0">
+                              {tpmsCharge > 0 ? (
+                                <CheckCircle2
+                                  className="h-4 w-4 shrink-0 text-emerald-400 mt-0.5"
+                                  aria-hidden
+                                />
+                              ) : null}
+                              <span className="flex flex-col min-w-0">
+                                <span className="font-medium text-neutral-200">TPMS service</span>
+                                {tpmsCharge > 0 ? (
+                                  <span className="text-[0.65rem] text-neutral-500 leading-tight">
+                                    Add-on included
+                                  </span>
+                                ) : (
+                                  <span className="text-[0.65rem] text-neutral-500 leading-tight">
+                                    Add-on not selected
+                                  </span>
+                                )}
+                              </span>
+                            </span>
+                            <span className="shrink-0 tabular-nums">
+                              {currencySymbol}
+                              {tpmsCharge.toFixed(2)}
+                            </span>
+                          </div>
+                        ) : null}
                         <div className="flex justify-between text-sm">
                           <span className="text-neutral-300">
                             VAT ({checkoutConfig.vat_enabled ? `${checkoutConfig.vat_percentage}%` : "Disabled"})

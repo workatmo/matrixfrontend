@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Link from "next/link";
+import Image from "next/image";
 import {
   CheckCircle2,
   Fuel,
@@ -18,6 +19,7 @@ import {
   Snowflake,
   CloudSun,
 } from "lucide-react";
+import { addToCart } from "@/lib/cart";
 
 /** First non-empty display value from a nested API object (speed ratings use `rating`, not `name`). */
 function relAttr(rel: unknown, keys: string[]): string | null {
@@ -31,10 +33,11 @@ function relAttr(rel: unknown, keys: string[]): string | null {
   return null;
 }
 
-export default function TyreDetailClient() {
+export default function TyreDetailClient({ tyreId }: { tyreId?: string }) {
   const params = useParams();
   const router = useRouter();
-  const id = params?.id as string;
+  const paramId = params?.id as string | undefined;
+  const id = tyreId ?? (paramId ? paramId.split("-")[0] : "");
 
   const [tyre, setTyre] = useState<PublicTyreItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,17 +65,25 @@ export default function TyreDetailClient() {
 
   const handleBookNow = () => {
     if (!tyre) return;
-    const qs = new URLSearchParams({
+    const tyrePrice = Number.parseFloat(tyre.price);
+    if (!Number.isFinite(tyrePrice) || tyrePrice <= 0) {
+      toast.error("This tyre does not have a valid price.");
+      return;
+    }
+
+    addToCart({
       tyre_id: tyre.id.toString(),
       tyre_brand: tyre.brand?.name || "Unknown Brand",
       tyre_model: tyre.model,
       tyre_size: tyre.size?.label || "Unknown Size",
-      tyre_price: tyre.price,
+      tyre_price: tyrePrice,
+      tyre_quantity: 1,
       vehicle_reg: "Direct Booking",
       vehicle_make: "Unknown",
       vehicle_model: "Unknown",
     });
-    router.push(`/checkout?${qs.toString()}`);
+    toast.success("Added to cart");
+    router.push("/cart");
   };
 
   const seasonName = relAttr(tyre?.season, ["name", "label", "title"]) ?? "";
@@ -161,11 +172,12 @@ export default function TyreDetailClient() {
                 </div>
 
                 {showImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={tyre.image_url!}
-                    alt={`${tyre.brand?.name} ${tyre.model}`}
+                    alt={`${tyre.brand?.name || "Tyre"} ${tyre.model} ${tyre.size?.label || ""} tyre`}
                     className="relative z-10 w-56 h-56 object-contain drop-shadow-2xl transition-transform duration-500 hover:scale-105"
+                    width={224}
+                    height={224}
                     onError={() => setImageError(true)}
                   />
                 ) : (

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Tyre placeholder">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f3f4f6" />
+      <stop offset="100%" stop-color="#e5e7eb" />
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="22" fill="url(#bg)" />
+  <circle cx="100" cy="100" r="72" fill="#111827" />
+  <circle cx="100" cy="100" r="50" fill="#273044" />
+  <circle cx="100" cy="100" r="30" fill="#d1d5db" />
+  <circle cx="100" cy="100" r="10" fill="#9ca3af" />
+  <path
+    d="M100 28v20M152 48l-14 14M172 100h-20M152 152l-14-14M100 172v-20M48 152l14-14M28 100h20M48 48l14 14"
+    stroke="#4b5563"
+    stroke-width="6"
+    stroke-linecap="round"
+  />
+</svg>

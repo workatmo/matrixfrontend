@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export function AccountChrome({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-black">
       <header className="border-b border-border bg-black text-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2 font-bold text-lg tracking-tighter hover:opacity-90">

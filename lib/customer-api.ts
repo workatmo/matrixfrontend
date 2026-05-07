@@ -313,6 +313,25 @@ export async function updateCustomerPassword(payload: {
   });
 }
 
+export async function customerForgotPassword(email: string): Promise<void> {
+  await customerRequest("/customer/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function customerResetPassword(payload: {
+  email: string;
+  token: string;
+  password: string;
+  password_confirmation: string;
+}): Promise<void> {
+  await customerRequest("/customer/reset-password", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export function getCustomerToken(): string | null {
   if (typeof window === "undefined") {
     return null;
