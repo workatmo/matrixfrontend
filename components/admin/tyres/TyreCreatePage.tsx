@@ -11,7 +11,7 @@ import TyreForm from "./TyreForm";
 export default function TyreCreatePage() {
   return (
     <AdminLayout title="Create Tyre">
-      <div className="mx-auto w-full max-w-5xl space-y-6">
+      <div className="w-full space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-2xl font-bold text-foreground">Create Tyre</h2>

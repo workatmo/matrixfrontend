@@ -518,7 +518,7 @@ export default function TyreForm() {
             {imagePreview ? (
               <div className="mt-2 rounded-lg border border-border p-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={imagePreview} alt="Tyre preview" className="h-28 w-28 rounded-md object-cover" />
+                <img src={imagePreview} alt="Tyre preview" className="w-full h-auto max-h-80 rounded-md object-contain" />
               </div>
             ) : null}
           </div>

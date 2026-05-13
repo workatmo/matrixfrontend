@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 56" role="img" aria-label="matrix Tyres">
+  <defs>
+    <linearGradient id="logoRing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a5f"/>
+      <stop offset="100%" stop-color="#0a1f44"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(4,4)">
+    <circle cx="24" cy="24" r="24" fill="url(#logoRing)"/>
+    <circle cx="24" cy="24" r="16" fill="none" stroke="#e2e8f0" stroke-width="2.2" opacity="0.95"/>
+    <circle cx="24" cy="24" r="8" fill="#f8fafc"/>
+    <path
+      d="M24 6v6M38 12l-4 4M42 24h-6M38 36l-4-4M24 42v-6M10 36l4-4M6 24h6M10 12l4 4"
+      stroke="#94a3b8"
+      stroke-width="2"
+      stroke-linecap="round"
+    />
+  </g>
+  <text x="62" y="38" fill="#0a1f44" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="26" font-weight="800" letter-spacing="-0.04em">matrix</text>
+  <text x="150" y="38" fill="#334155" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="26" font-weight="600" letter-spacing="-0.02em">Tyres</text>
+</svg>

@@ -45,6 +45,7 @@ const AVAILABLE_PERMISSIONS = [
   { id: "customers", label: "Customers" },
   { id: "vehicles", label: "Vehicles" },
   { id: "orders", label: "Orders" },
+  { id: "payments", label: "Payments" },
   { id: "tyres", label: "Tyres" },
   { id: "attributes", label: "Attributes" },
   { id: "notifications", label: "Notifications" },

@@ -221,6 +221,55 @@ export async function deleteAdminCoupon(id: number): Promise<void> {
   await request(`/admin/coupons/${id}`, { method: "DELETE" });
 }
 
+// ── Delivery Charges ─────────────────────────────────────────────────────────
+
+export interface AdminDeliveryChargeItem {
+  id: number;
+  from_distance: number;
+  to_distance: number;
+  charge: number;
+  status: "active" | "inactive";
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminDeliveryChargePayload {
+  from_distance: number;
+  to_distance: number;
+  charge: number;
+  status: "active" | "inactive";
+}
+
+export async function listAdminDeliveryCharges(): Promise<AdminDeliveryChargeItem[]> {
+  const data = await request<{ data: { delivery_charges: AdminDeliveryChargeItem[] } }>("/admin/delivery-charges");
+  return data.data.delivery_charges;
+}
+
+export async function createAdminDeliveryCharge(
+  payload: AdminDeliveryChargePayload
+): Promise<AdminDeliveryChargeItem> {
+  const data = await request<{ data: AdminDeliveryChargeItem }>("/admin/delivery-charges", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function updateAdminDeliveryCharge(
+  id: number,
+  payload: AdminDeliveryChargePayload
+): Promise<AdminDeliveryChargeItem> {
+  const data = await request<{ data: AdminDeliveryChargeItem }>(`/admin/delivery-charges/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.data;
+}
+
+export async function deleteAdminDeliveryCharge(id: number): Promise<void> {
+  await request(`/admin/delivery-charges/${id}`, { method: "DELETE" });
+}
+
 // ── Slots ───────────────────────────────────────────────────────────────────
 
 export interface AdminSlotItem {
@@ -305,11 +354,22 @@ export interface AdminOrderItem {
   user_id: number | null;
   slot_id: number | null;
   user: { id: number; name: string; email: string; phone: string | null } | null;
+  slot?: { id: number; day: string; start_time: string; end_time: string } | null;
   vehicle_registration: string | null;
   vehicle_make: string | null;
   vehicle_model: string | null;
   service_type: string;
+  tyre_brand?: string | null;
+  tyre_model?: string | null;
+  tyre_size?: string | null;
+  tyre_quantity?: number | null;
   amount: string; // decimal from Laravel comes as string
+  payment_provider?: string | null;
+  payment_status?: string | null;
+  stripe_mode?: string | null;
+  stripe_checkout_session_id?: string | null;
+  stripe_payment_intent_id?: string | null;
+  paid_at?: string | null;
   status: AdminOrderStatus;
   notes: string | null;
   created_at: string | null;
@@ -338,11 +398,19 @@ export interface AdminOrdersListResult {
 export interface AdminOrderPayload {
   user_id?: number | null;
   slot_id?: number | null;
+  fitting_date?: string | null;
   vehicle_registration?: string | null;
   vehicle_make?: string | null;
   vehicle_model?: string | null;
   service_type: string;
+  tyre_brand?: string | null;
+  tyre_model?: string | null;
+  tyre_size?: string | null;
+  tyre_quantity?: number | null;
   amount: number;
+  payment_provider?: string | null;
+  payment_status?: string | null;
+  paid_at?: string | null;
   status: AdminOrderStatus;
   notes?: string | null;
 }
@@ -350,12 +418,14 @@ export interface AdminOrderPayload {
 export async function listAdminOrders(params?: {
   search?: string;
   status?: AdminOrderStatus | "";
+  payment?: "paid" | "not_paid" | "";
   page?: number;
   per_page?: number;
 }): Promise<AdminOrdersListResult> {
   const qs = new URLSearchParams();
   if (params?.search) qs.set("search", params.search);
   if (params?.status) qs.set("status", params.status);
+  if (params?.payment) qs.set("payment", params.payment);
   if (params?.page) qs.set("page", String(params.page));
   if (params?.per_page) qs.set("per_page", String(params.per_page));
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
@@ -389,6 +459,49 @@ export async function updateAdminOrderStatus(id: number, status: AdminOrderStatu
 
 export async function deleteAdminOrder(id: number): Promise<void> {
   await request(`/admin/orders/${id}`, { method: "DELETE" });
+}
+
+export async function downloadAdminOrderInvoice(id: number): Promise<void> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)
+      : null;
+
+  const res = await fetch(`${BASE_URL}/admin/orders/${id}/invoice`, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      Accept: "application/pdf",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!res.ok) {
+    if (res.status === 401 && typeof window !== "undefined") {
+      localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+      window.location.assign("/admin/login");
+    }
+    let message = `Failed to download invoice (HTTP ${res.status}).`;
+    try {
+      const text = await res.text();
+      const json = parseJsonRecord(text);
+      const fromApi = messageFromApiPayload(json);
+      if (fromApi) message = fromApi;
+    } catch {
+      // Ignore non-JSON error bodies.
+    }
+    throw new Error(message);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `invoice-${id}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export async function listAdminUsers(
@@ -747,6 +860,107 @@ export async function checkAdminSessionWithApi(): Promise<AdminUserPayload | nul
   }
 }
 
+export interface PublicTyreItem {
+  id: number;
+  brand_id: number;
+  model: string;
+  size_id: number;
+  season_id: number | null;
+  tyre_type_id: number | null;
+  fuel_efficiency_id: number | null;
+  speed_rating_id: number | null;
+  price: string;
+  stock: number;
+  description: string | null;
+  status: boolean;
+  image_url: string | null;
+  // Relationships as serialised to JSON by Laravel (snake_case)
+  brand?: { id: number; name: string; logo_url: string | null; is_active: boolean };
+  size?: { id: number; width: number; profile: number; rim: number; label: string };
+  season?: { id: number; name: string } | null;
+  tyre_type?: { id: number; name: string } | null;
+  fuel_efficiency?: { id: number; rating: string } | null;
+  /** Laravel `speed_ratings` table uses `rating` (e.g. "H"); there is no `name` column. */
+  speed_rating?: { id: number; rating: string; max_speed?: number; name?: string } | null;
+}
+
+/** Merge snake_case and camelCase relation keys (defensive; Laravel uses snake_case). */
+function normalizePublicTyre(item: PublicTyreItem): PublicTyreItem {
+  const r = item as unknown as Record<string, unknown>;
+  return {
+    ...item,
+    brand: item.brand ?? (r.brand as PublicTyreItem["brand"]),
+    size: item.size ?? (r.size as PublicTyreItem["size"]),
+    season: item.season ?? (r.season as PublicTyreItem["season"]),
+    tyre_type:
+      item.tyre_type ?? (r.tyreType as PublicTyreItem["tyre_type"] | undefined),
+    fuel_efficiency:
+      item.fuel_efficiency ?? (r.fuelEfficiency as PublicTyreItem["fuel_efficiency"] | undefined),
+    speed_rating:
+      item.speed_rating ?? (r.speedRating as PublicTyreItem["speed_rating"] | undefined),
+  };
+}
+
+export interface PublicTyreListResult {
+  current_page: number;
+  data: PublicTyreItem[];
+  first_page_url: string;
+  from: number;
+  last_page: number;
+  last_page_url: string;
+  next_page_url: string | null;
+  path: string;
+  per_page: number;
+  prev_page_url: string | null;
+  to: number;
+  total: number;
+}
+
+export async function getPublicTyres(page = 1, filters?: { size?: string; brand?: string }): Promise<PublicTyreListResult> {
+  const qs = new URLSearchParams();
+  qs.set("page", String(page));
+  if (filters?.size) qs.set("size", filters.size);
+  if (filters?.brand) qs.set("brand", filters.brand);
+
+  const url = `${BASE_URL}/public/tyres?${qs.toString()}`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(describeHttpFailure(res.status, text));
+  }
+
+  const json = await res.json();
+  const result = json.data as PublicTyreListResult;
+  return {
+    ...result,
+    data: result.data.map((t) => normalizePublicTyre(t)),
+  };
+}
+
+export async function getPublicTyre(id: string | number): Promise<PublicTyreItem> {
+  const url = `${BASE_URL}/public/tyres/${id}`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(describeHttpFailure(res.status, text));
+  }
+
+  const json = await res.json();
+  return normalizePublicTyre(json.data as PublicTyreItem);
+}
+
 export interface SystemUpdateStatus {
   repository_exists: boolean;
   pending_migrations: string[];
@@ -797,6 +1011,20 @@ export async function updateApiKey(id: number, value: string): Promise<ApiSettin
       body: JSON.stringify({ value }),
     }
   );
+  return data.data;
+}
+
+export async function testStripeConnection(mode: "test" | "live"): Promise<{
+  mode: "test" | "live";
+  account_id: string | null;
+  livemode: boolean | null;
+}> {
+  const data = await request<{
+    data: { mode: "test" | "live"; account_id: string | null; livemode: boolean | null };
+  }>("/admin/stripe/test", {
+    method: "POST",
+    body: JSON.stringify({ mode }),
+  });
   return data.data;
 }
 
@@ -1008,9 +1236,12 @@ export async function updateAdminTyre(id: number, payload: AdminCreateTyrePayloa
   if (payload.description !== undefined && payload.description !== null) form.append("description", payload.description);
   if (payload.status !== undefined) form.append("status", typeof payload.status === "boolean" ? (payload.status ? "1" : "0") : payload.status);
   if (payload.image) form.append("image", payload.image);
+  
+  // Laravel cannot parse multipart/form-data on native PUT requests
+  form.append("_method", "PUT");
 
   const res = await fetch(`${BASE_URL}/admin/tyres/${id}`, {
-    method: "PUT",
+    method: "POST", // Sent as POST but intercepted by Laravel as PUT
     credentials: "include",
     headers: {
       Accept: "application/json",
@@ -1870,6 +2101,8 @@ export interface AdminSettings {
   vat_enabled: string;          // "1" | "0"
   platform_fee: string;         // fixed amount
   platform_fee_enabled: string; // "1" | "0"
+  tpms_charge: string;          // fixed amount
+  tpms_charge_enabled: string;  // "1" | "0"
   maintenance_mode: string;     // "1" | "0"
   maintenance_message: string;
   timezone: string;
