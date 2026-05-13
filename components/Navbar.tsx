@@ -1,22 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CheckCircle2, MapPin, Menu, Phone, PhoneCall, Star, X } from "lucide-react";
 import { getCustomerToken } from "@/lib/customer-api";
-import { clientApiUrl } from "@/lib/public-api-url";
 import { cn } from "@/lib/utils";
 import { getCartCount, onCartUpdated } from "@/lib/cart";
+import { PublicBrandLogo } from "@/components/PublicBrandLogo";
 
 export function Navbar() {
   const pathname = usePathname();
   const [customerSignedIn, setCustomerSignedIn] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [brandName, setBrandName] = useState("Matrix");
-  const [brandLogoUrl, setBrandLogoUrl] = useState("");
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
@@ -31,40 +28,6 @@ export function Navbar() {
   useEffect(() => {
     setCartCount(getCartCount());
     return onCartUpdated(() => setCartCount(getCartCount()));
-  }, []);
-
-  useEffect(() => {
-    const loadBrandSettings = async () => {
-      try {
-        const response = await fetch(clientApiUrl("/public/contact"), {
-          method: "GET",
-          headers: { Accept: "application/json" },
-          cache: "no-store",
-        });
-
-        if (!response.ok) return;
-
-        const payload = await response.json().catch(() => ({}));
-        const source =
-          payload && typeof payload === "object" && payload.data && typeof payload.data === "object"
-            ? payload.data
-            : payload;
-
-        const nextBrandName = source?.brand_name;
-        const nextBrandLogoUrl = source?.logo_url;
-
-        if (typeof nextBrandName === "string" && nextBrandName.trim() !== "") {
-          setBrandName(nextBrandName.trim());
-        }
-        if (typeof nextBrandLogoUrl === "string" && nextBrandLogoUrl.trim() !== "") {
-          setBrandLogoUrl(nextBrandLogoUrl.trim());
-        }
-      } catch {
-        // Keep default brand label and icon when public settings are unavailable.
-      }
-    };
-
-    void loadBrandSettings();
   }, []);
 
   if (!mounted) return null;
@@ -130,22 +93,10 @@ export function Navbar() {
       <div className="mx-auto flex h-24 max-w-7xl items-center justify-between px-6 sm:px-10">
         <div className="flex items-center">
           <Link href="/" className="flex items-center py-1 text-xl font-bold tracking-tighter transition-opacity hover:opacity-80">
-            {brandLogoUrl ? (
-              <div className="h-16 w-28 overflow-hidden">
-                <Image
-                  src={brandLogoUrl}
-                  alt={`${brandName} logo`}
-                  className="h-full w-full scale-150 object-cover object-left"
-                  width={112}
-                  height={64}
-                  unoptimized
-                />
-              </div>
-            ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white font-black text-black">
-                N
-              </div>
-            )}
+            <PublicBrandLogo
+              priority
+              imgClassName="h-14 w-auto max-w-[min(220px,55vw)] object-contain object-left sm:h-16"
+            />
           </Link>
         </div>
 

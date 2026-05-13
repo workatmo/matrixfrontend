@@ -558,12 +558,20 @@ export default function ApiSettingsPage() {
         stripeLiveWebhook
       ) {
         const icon = iconMetaForType("stripe");
-        const inferredMode: StripeMode =
-          stripeLive.is_enabled && !stripeTest.is_enabled
-            ? "live"
-            : stripeTest.is_enabled && !stripeLive.is_enabled
-              ? "test"
-              : "test";
+        let inferredMode: StripeMode = "test";
+        if (stripeLive.is_enabled && !stripeTest.is_enabled) {
+          inferredMode = "live";
+        } else if (stripeTest.is_enabled && !stripeLive.is_enabled) {
+          inferredMode = "test";
+        } else if (stripeLive.is_enabled && stripeTest.is_enabled) {
+          if (stripeLiveSecret.has_key && !stripeTestSecret.has_key) {
+            inferredMode = "live";
+          } else if (stripeTestSecret.has_key && !stripeLiveSecret.has_key) {
+            inferredMode = "test";
+          } else if (stripeLiveSecret.has_key && stripeTestSecret.has_key) {
+            inferredMode = "test";
+          }
+        }
 
         const mode: StripeMode = inferredMode;
         const active = mode === "test" ? stripeTest : stripeLive;

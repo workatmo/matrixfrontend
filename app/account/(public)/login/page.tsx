@@ -52,9 +52,6 @@ function CustomerLoginForm() {
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 sm:py-14">
       <div className="w-full max-w-md space-y-7">
         <div className="flex flex-col items-center gap-4 text-center">
-          <div className="w-14 h-14 bg-white text-black rounded-full flex items-center justify-center shadow-lg font-black text-xl border border-neutral-800">
-            N
-          </div>
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight text-white">My account</h1>
             <p className="text-base text-neutral-400">

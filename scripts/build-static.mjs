@@ -38,6 +38,19 @@ try {
       STATIC_EXPORT: "1",
     },
   });
+
+  const outDir = path.join(projectRoot, "out");
+  const zipPath = path.join(projectRoot, "matrix-frontend-hostinger.zip");
+  if (!exists(outDir)) {
+    throw new Error(`Static export output missing: ${outDir}`);
+  }
+  rm(zipPath);
+  execSync(`zip -r "${zipPath}" .`, {
+    cwd: outDir,
+    stdio: "inherit",
+    env: process.env,
+  });
+  console.log(`\nHostinger zip: ${zipPath}\n`);
 } finally {
   if (exists(stashDir)) {
     fs.mkdirSync(path.dirname(routeDir), { recursive: true });

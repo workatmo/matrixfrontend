@@ -103,6 +103,16 @@ function isSlotInBusinessWindow(slot: Slot): boolean {
   return start >= 9 * 60 && start < 18 * 60;
 }
 
+function localMinutesSinceMidnight(d: Date): number {
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+/** For the customer's local "today", omit hourly slots that have already begun. */
+function isSlotStillBookableOnSameCalendarDay(selectedDate: Date, slot: Slot, referenceNow: Date): boolean {
+  if (!isSameDay(selectedDate, referenceNow)) return true;
+  return timeStringToMinutes(slot.start_time) > localMinutesSinceMidnight(referenceNow);
+}
+
 function formatDayShort(d: Date): string {
   return d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
 }
@@ -230,15 +240,30 @@ function CheckoutPageContent() {
   const [includeTpms, setIncludeTpms] = useState(false);
   const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
   const [isResolvingLocation, setIsResolvingLocation] = useState(false);
+  /** Bumps every minute so same-day slot list drops past hours without a full reload. */
+  const [slotTimeTick, setSlotTimeTick] = useState(0);
 
   const calendarDates = useMemo(() => generateCalendarDates(), []);
 
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setSlotTimeTick((n) => n + 1);
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
   const slotsForSelectedDate = useMemo(() => {
     const key = dateToSlotDayKey(selectedDate);
+    const now = new Date();
     return slots
-      .filter((s) => s.day.toLowerCase() === key && isSlotInBusinessWindow(s))
+      .filter(
+        (s) =>
+          s.day.toLowerCase() === key &&
+          isSlotInBusinessWindow(s) &&
+          isSlotStillBookableOnSameCalendarDay(selectedDate, s, now)
+      )
       .sort((a, b) => timeStringToMinutes(a.start_time) - timeStringToMinutes(b.start_time));
-  }, [slots, selectedDate]);
+  }, [slots, selectedDate, slotTimeTick]);
 
   const bookedSlotKeys = useMemo(() => {
     const set = new Set<string>();
@@ -266,6 +291,13 @@ function CheckoutPageContent() {
     const key = dateToSlotDayKey(selectedDate);
     setSelectedSlot((prev) => (prev && prev.day !== key ? null : prev));
   }, [selectedDate]);
+
+  useEffect(() => {
+    setSelectedSlot((prev) => {
+      if (!prev) return prev;
+      return slotsForSelectedDate.some((s) => s.id === prev.id) ? prev : null;
+    });
+  }, [slotsForSelectedDate]);
 
   useEffect(() => {
     if (calendarDates.length === 0) return;
@@ -615,7 +647,7 @@ function CheckoutPageContent() {
       const stripeRes = await fetch(clientApiUrl(`/public/orders/${orderId}/stripe-checkout`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "test" }),
+        body: JSON.stringify({}),
       });
       const stripeJson = await stripeRes.json().catch(() => ({}));
       if (!stripeRes.ok) {

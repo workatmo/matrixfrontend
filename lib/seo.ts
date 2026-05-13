@@ -25,6 +25,17 @@ export const localSeoCities = [
   "coventry",
 ];
 
+/** Primary coverage towns — keep in sync with `/areas-we-cover` and local landing pages. */
+export const SERVICE_COVERAGE_LOCATIONS = [
+  "Coventry",
+  "Warwick",
+  "Leamington Spa",
+  "Rugby",
+  "Nuneaton",
+  "Bedworth",
+  "Hinckley",
+] as const;
+
 export function slugify(value: string): string {
   return value
     .toLowerCase()

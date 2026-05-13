@@ -4,7 +4,7 @@ export type JsonLd = Record<string, unknown>;
 
 export function organizationSchema(input: { name: string; urlPath?: string; logoPath?: string }): JsonLd {
   const url = buildCanonical(input.urlPath ?? "/");
-  const logo = buildCanonical(input.logoPath ?? "/tyre-placeholder.svg");
+  const logo = buildCanonical(input.logoPath ?? "/brand-logo.svg");
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -26,7 +26,7 @@ export function localBusinessSchema(input: {
   areaServed?: string[];
 }): JsonLd {
   const url = buildCanonical(input.urlPath ?? "/");
-  const image = buildCanonical(input.imagePath ?? "/tyre-placeholder.svg");
+  const image = buildCanonical(input.imagePath ?? "/brand-logo.svg");
   return {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",

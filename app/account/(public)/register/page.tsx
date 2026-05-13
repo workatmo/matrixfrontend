@@ -69,9 +69,6 @@ function CustomerRegisterForm() {
     <div className="min-h-screen flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="w-14 h-14 bg-white text-black rounded-full flex items-center justify-center shadow-lg font-black text-xl border border-neutral-800">
-            N
-          </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Create account</h1>
             <p className="text-sm text-muted-foreground mt-1">

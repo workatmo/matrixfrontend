@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { publicAppUrl } from "@/lib/config";
+import { fetchPublicContactSettings } from "@/lib/fetch-public-contact";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteChrome } from "@/components/SiteChrome";
 import { seoKeywords } from "@/lib/seo";
+import { Toaster } from "@/components/ui/sonner";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 const fontMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
@@ -61,21 +63,24 @@ export const metadata: Metadata = {
   },
 };
 
-import { Toaster } from "@/components/ui/sonner";
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const contact = await fetchPublicContactSettings();
   const base = publicAppUrl.replace(/\/$/, "");
+  const fallbackLogo = `${base}/brand-logo.svg`;
+  const brandLabel = contact.brand_name.trim() || "matrix Tyres";
+  const brandLogo = contact.logo_url ?? fallbackLogo;
+
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
     "@id": `${base}#organization`,
-    name: "matrix Tyres",
+    name: brandLabel,
     url: publicAppUrl,
-    logo: `${publicAppUrl.replace(/\/$/, "")}/tyre-placeholder.svg`,
+    logo: brandLogo,
     sameAs: [],
   };
 
@@ -83,8 +88,8 @@ export default function RootLayout({
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     "@id": `${base}#localbusiness`,
-    name: "matrix Tyres",
-    image: `${publicAppUrl.replace(/\/$/, "")}/tyre-placeholder.svg`,
+    name: brandLabel,
+    image: brandLogo,
     url: publicAppUrl,
     telephone: "+44 7721 570075",
     areaServed: ["London", "Manchester", "Birmingham", "Leeds", "Coventry"],

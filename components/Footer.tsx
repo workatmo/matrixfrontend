@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { clientApiUrl } from "@/lib/public-api-url";
+import { fetchPublicContactSource } from "@/lib/public-contact-brand";
+import { PublicBrandLogo } from "@/components/PublicBrandLogo";
 
 export function Footer() {
   const pathname = usePathname();
@@ -14,66 +14,36 @@ export function Footer() {
   const [contactNumber, setContactNumber] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [address, setAddress] = useState("");
-  const [brandName, setBrandName] = useState("Matrix");
-  const [brandLogoUrl, setBrandLogoUrl] = useState("");
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   useEffect(() => {
-    const loadContactNumber = async () => {
+    const loadContact = async () => {
       try {
-        const response = await fetch(clientApiUrl("/public/contact"), {
-          method: "GET",
-          headers: { Accept: "application/json" },
-          cache: "no-store",
-        });
-        if (!response.ok) {
+        const source = await fetchPublicContactSource();
+        if (!source) {
           return;
         }
-        const payload = await response.json().catch(() => ({}));
-        const value =
-          payload && typeof payload === "object" && payload.data && typeof payload.data === "object"
-            ? payload.data.contact_number
-            : payload.contact_number;
-        if (typeof value === "string" && value.trim() !== "") {
-          setContactNumber(value.trim());
+        const number = source.contact_number;
+        if (typeof number === "string" && number.trim() !== "") {
+          setContactNumber(number.trim());
         }
-        const emailValue =
-          payload && typeof payload === "object" && payload.data && typeof payload.data === "object"
-            ? payload.data.contact_email
-            : payload.contact_email;
+        const emailValue = source.contact_email;
         if (typeof emailValue === "string" && emailValue.trim() !== "") {
           setContactEmail(emailValue.trim());
         }
-        const addressValue =
-          payload && typeof payload === "object" && payload.data && typeof payload.data === "object"
-            ? payload.data.address
-            : payload.address;
+        const addressValue = source.address;
         if (typeof addressValue === "string" && addressValue.trim() !== "") {
           setAddress(addressValue.trim());
-        }
-        const brandNameValue =
-          payload && typeof payload === "object" && payload.data && typeof payload.data === "object"
-            ? payload.data.brand_name
-            : payload.brand_name;
-        if (typeof brandNameValue === "string" && brandNameValue.trim() !== "") {
-          setBrandName(brandNameValue.trim());
-        }
-        const brandLogoUrlValue =
-          payload && typeof payload === "object" && payload.data && typeof payload.data === "object"
-            ? payload.data.logo_url
-            : payload.logo_url;
-        if (typeof brandLogoUrlValue === "string" && brandLogoUrlValue.trim() !== "") {
-          setBrandLogoUrl(brandLogoUrlValue.trim());
         }
       } catch {
         // Keep defaults when public settings are unavailable.
       }
     };
 
-    void loadContactNumber();
+    void loadContact();
   }, []);
 
   const sanitizedContactNumber = useMemo(
@@ -95,22 +65,7 @@ export function Footer() {
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-6 sm:px-10 md:grid-cols-4">
         <div className="flex flex-col gap-4">
           <Link href="/" className="flex items-center gap-2 text-xl font-bold tracking-tighter transition-opacity hover:opacity-80">
-            {brandLogoUrl ? (
-              <div className="h-12 w-20 overflow-hidden">
-                <Image
-                  src={brandLogoUrl}
-                  alt={`${brandName} logo`}
-                  className="h-full w-full scale-150 object-cover object-left"
-                  width={80}
-                  height={48}
-                  unoptimized
-                />
-              </div>
-            ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-300 bg-white font-black text-black">
-                N
-              </div>
-            )}
+            <PublicBrandLogo imgClassName="h-10 w-auto max-w-[180px] object-contain object-left sm:h-12" />
           </Link>
           <p className="mt-2 max-w-xs text-sm leading-relaxed text-neutral-600">
             Find the perfect tyres for your vehicle in seconds. Premium quality, expertly fitted whenever and wherever you need them.

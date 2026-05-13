@@ -11,6 +11,7 @@ import { FaqSection } from "@/components/FaqSection";
 import { HeroSearch } from "@/components/HeroSearch";
 import { HowItWorks } from "@/components/HowItWorks";
 import { WhyChooseUs } from "@/components/WhyChooseUs";
+import { SERVICE_COVERAGE_LOCATIONS, slugify } from "@/lib/seo";
 
 interface Vehicle {
   registration: string;
@@ -176,20 +177,20 @@ export default function HomePageClient() {
             <div className="mx-auto max-w-6xl">
               <div className="rounded-xl border border-white/70 bg-gradient-to-br from-[#eef4ff]/90 via-[#f4f0ff]/90 to-[#ffeef7]/90 p-6 shadow-[0_18px_50px_-35px_rgba(53,88,223,0.6)] backdrop-blur-sm sm:p-8">
                 <h2 className="text-3xl font-semibold tracking-tight text-black sm:text-4xl">
-                  Tyre fitting in London / Manchester
+                  Areas we cover
                 </h2>
                 <p className="mt-3 max-w-3xl text-neutral-700">
-                  We offer mobile tyre fitting across major UK cities. Book online and choose a
-                  fast slot at your home, workplace, or roadside location.
+                  We offer mobile tyre fitting across our local coverage area. Book online and
+                  choose a fast slot at your home, workplace, or roadside location.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
-                  {["london", "manchester", "birmingham", "leeds"].map((city) => (
+                  {SERVICE_COVERAGE_LOCATIONS.map((location) => (
                     <Link
-                      key={city}
-                      href={`/tyre-fitting/${city}`}
+                      key={location}
+                      href={`/tyre-fitting/${slugify(location)}`}
                       className="rounded-full border border-[#c9d7ff] bg-white/90 px-4 py-2 text-sm font-semibold text-[#1f2d66] shadow-[0_10px_24px_-18px_rgba(53,88,223,0.9)] transition-all hover:-translate-y-0.5 hover:border-[#aebff8] hover:bg-white"
                     >
-                      Tyre fitting in {city.charAt(0).toUpperCase() + city.slice(1)}
+                      {location}
                     </Link>
                   ))}
                 </div>

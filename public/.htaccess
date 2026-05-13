@@ -5,6 +5,15 @@ DirectorySlash Off
 RewriteEngine On
 RewriteBase /
 
+# HSTS — only when the request is HTTPS (direct TLS or behind a proxy that sets X-Forwarded-Proto).
+<IfModule mod_headers.c>
+  <IfModule mod_setenvif.c>
+    SetEnvIf HTTPS "on" MATRIX_HSTS=1
+    SetEnvIf X-Forwarded-Proto "^https$" MATRIX_HSTS=1
+  </IfModule>
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=MATRIX_HSTS
+</IfModule>
+
 # Serve existing files directly.
 RewriteCond %{REQUEST_FILENAME} -f
 RewriteRule ^ - [L]

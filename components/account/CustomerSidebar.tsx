@@ -7,6 +7,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, CreditCard, LayoutDashboard, LogO
 import { cn } from "@/lib/utils";
 import { customerLogout } from "@/lib/customer-api";
 import { buttonVariants } from "@/components/ui/button";
+import { usePublicBrandSettings } from "@/lib/use-public-brand-settings";
 
 const nav = [
   { label: "Overview", href: "/account", icon: LayoutDashboard },
@@ -18,6 +19,7 @@ const nav = [
 export function CustomerSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { brandName, logoSrc } = usePublicBrandSettings();
   const [collapsed, setCollapsed] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -47,16 +49,29 @@ export function CustomerSidebar() {
       <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border min-h-[64px]">
         <Link
           href="/account"
-          className="flex-shrink-0 w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center text-sidebar-primary-foreground font-black text-sm"
+          className={cn(
+            "flex min-w-0 flex-1 items-center gap-3 rounded-md outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring",
+            collapsed && "justify-center gap-0"
+          )}
         >
-          N
+          <img
+            src={logoSrc}
+            alt={`${brandName} logo`}
+            width={220}
+            height={51}
+            className={cn(
+              "object-contain object-left",
+              collapsed ? "h-8 w-8 max-h-8 max-w-8" : "h-9 w-auto max-w-[min(180px,72%)]"
+            )}
+            decoding="async"
+          />
+          {!collapsed && (
+            <div className="min-w-0 flex flex-col gap-0.5">
+              <span className="text-sidebar-foreground font-bold text-lg tracking-tight truncate">{brandName}</span>
+              <span className="text-[10px] text-sidebar-foreground/50">My account</span>
+            </div>
+          )}
         </Link>
-        {!collapsed && (
-          <div className="min-w-0 flex flex-col gap-0.5">
-            <span className="text-sidebar-foreground font-bold text-lg tracking-tight truncate">Matrix</span>
-            <span className="text-[10px] text-sidebar-foreground/50">My account</span>
-          </div>
-        )}
       </div>
 
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">

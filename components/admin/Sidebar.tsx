@@ -17,7 +17,6 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
-  Zap,
   Tags,
   Ticket,
   CalendarClock,
@@ -27,6 +26,8 @@ import { useState, type ComponentType } from "react";
 import { cn } from "@/lib/utils";
 import packageJson from "@/package.json";
 import { useAdminAuth } from "@/components/admin/AuthContext";
+import { PublicBrandLogo } from "@/components/PublicBrandLogo";
+import { usePublicBrandSettings } from "@/lib/use-public-brand-settings";
 
 type NavChildItem = {
   label: string;
@@ -138,6 +139,7 @@ export default function Sidebar() {
     Attributes: true,
   });
   const { user } = useAdminAuth();
+  const { brandName } = usePublicBrandSettings();
 
   const filteredNavItems = navItems.filter((item) => {
     const permissionMap: Record<string, string> = {
@@ -184,25 +186,34 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border min-h-[64px]">
-        <div
-          className="flex-shrink-0 w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center"
-          title={collapsed ? `Matrix Admin v${packageJson.version}` : undefined}
+        <Link
+          href="/admin/dashboard"
+          className={cn(
+            "flex min-w-0 flex-1 items-center gap-3 rounded-md outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring",
+            collapsed && "justify-center gap-0"
+          )}
+          title={collapsed ? `${brandName} Admin v${packageJson.version}` : undefined}
         >
-          <Zap className="w-4 h-4 text-sidebar-primary-foreground" />
-        </div>
-        {!collapsed && (
-          <div className="min-w-0 flex flex-col gap-0.5">
-            <span className="text-sidebar-foreground font-bold text-lg tracking-tight whitespace-nowrap overflow-hidden">
-              Matrix Admin
-            </span>
-            <span
-              className="text-[10px] tabular-nums text-sidebar-foreground/40 select-none"
-              title={`Matrix Admin v${packageJson.version}`}
-            >
-              v{packageJson.version}
-            </span>
-          </div>
-        )}
+          <PublicBrandLogo
+            imgClassName={cn(
+              "object-contain object-left",
+              collapsed ? "h-8 w-8 max-h-8 max-w-8" : "h-8 w-auto max-w-[120px] sm:max-w-[140px]"
+            )}
+          />
+          {!collapsed && (
+            <div className="min-w-0 flex flex-col gap-0.5">
+              <span className="text-sidebar-foreground font-bold text-lg tracking-tight whitespace-nowrap overflow-hidden">
+                {brandName} Admin
+              </span>
+              <span
+                className="text-[10px] tabular-nums text-sidebar-foreground/40 select-none"
+                title={`${brandName} Admin v${packageJson.version}`}
+              >
+                v{packageJson.version}
+              </span>
+            </div>
+          )}
+        </Link>
       </div>
 
       {/* Navigation */}

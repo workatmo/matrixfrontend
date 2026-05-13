@@ -1,0 +1,2 @@
+# No authorized digital sellers. This site does not sell programmatic ad inventory.
+# If you add display/video ads later, replace this file per https://iabtechlab.com/ads-txt/

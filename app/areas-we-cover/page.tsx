@@ -1,6 +1,6 @@
 import { ArrowRight, CheckCircle2, MapPin } from "lucide-react";
 import Link from "next/link";
-import { slugify } from "@/lib/seo";
+import { SERVICE_COVERAGE_LOCATIONS, slugify } from "@/lib/seo";
 
 export const metadata = {
   title: "Areas We Cover | Matrix",
@@ -9,18 +9,6 @@ export const metadata = {
     canonical: "/areas-we-cover",
   },
 };
-
-const locations = [
-  "Coventry",
-  "Warwick",
-  "Leamington Spa",
-  "Rugby",
-  "Nuneaton",
-  "Bedworth",
-  "Hinckley",
-];
-
-const orderedLocations = ["Coventry", ...locations.filter((location) => location !== "Coventry")];
 
 export default function AreasWeCoverPage() {
   return (
@@ -43,7 +31,7 @@ export default function AreasWeCoverPage() {
       <section className="mx-auto w-full max-w-6xl px-6 py-16 sm:px-10">
         <h2 className="mb-8 text-3xl font-semibold tracking-tight text-black sm:text-4xl">Covered Locations</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {orderedLocations.map((location) => (
+          {SERVICE_COVERAGE_LOCATIONS.map((location) => (
             <Link
               key={location}
               href={`/tyre-fitting/${slugify(location)}`}
